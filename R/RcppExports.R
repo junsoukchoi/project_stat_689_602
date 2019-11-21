@@ -2,18 +2,18 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 rcpparma_hello_world <- function() {
-    .Call(`_ZIPBN_rcpparma_hello_world`)
+    .Call('_ZIPBN_rcpparma_hello_world', PACKAGE = 'ZIPBN')
 }
 
 rcpparma_outerproduct <- function(x) {
-    .Call(`_ZIPBN_rcpparma_outerproduct`, x)
+    .Call('_ZIPBN_rcpparma_outerproduct', PACKAGE = 'ZIPBN', x)
 }
 
 rcpparma_innerproduct <- function(x) {
-    .Call(`_ZIPBN_rcpparma_innerproduct`, x)
+    .Call('_ZIPBN_rcpparma_innerproduct', PACKAGE = 'ZIPBN', x)
 }
 
 rcpparma_bothproducts <- function(x) {
-    .Call(`_ZIPBN_rcpparma_bothproducts`, x)
+    .Call('_ZIPBN_rcpparma_bothproducts', PACKAGE = 'ZIPBN', x)
 }
 
