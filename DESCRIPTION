@@ -1,11 +1,11 @@
 Package: ZIPBN
 Type: Package
-Title: Zero-Inflated Poisson Bayesian Network Models for Zero-Inflated Count Data
+Title: Zero-Inflated Poisson Bayesian Networks for Zero-Inflated Count Data
 Version: 1.0.0
 Date: 2019-11-21
 Author: Junsouk Choi [aut, cre]
 Maintainer: Junsouk Choi <jchoi@stat.tamu.edu>
-Description: Markov chain Monte Carlo (MCMC) implementation to fit a zero-inflated poisson Bayesian network models for zero-inflated count data such as scRNA-seq data. Each local distribution of a Bayesian network is assumed to be a zero-inflated poisson regression model. The algorithm uses Metropolis-Within-Gibbs sampling for posterior inference.
+Description: Markov chain Monte Carlo (MCMC) implementation to fit zero-inflated poisson Bayesian network models for zero-inflated count data such as scRNA-seq data. Each local distribution of a Bayesian network is assumed to be a zero-inflated poisson model. The algorithm uses Metropolis-Within-Gibbs sampling for posterior inference.
 License: GPL (>=2)
 Encoding: UTF-8
 LazyData: true
