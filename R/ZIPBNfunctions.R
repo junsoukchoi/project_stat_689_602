@@ -43,6 +43,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples = 5000)
    beta  = starting$beta
    delta = starting$delta
    gamma = starting$gamma
+   A     = starting$A
    tau   = starting$tau
    rho   = starting$rho
    
@@ -67,8 +68,8 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples = 5000)
    rho_MCMC   = rep(NA, n.samples)
    
    # initialize acceptance indicators
-   accept_alpha = accept_beta = accept_A = array(0, dim = c(p, p, MCMC)) 
-   accept_delta = accept_gamma = matrix(0, p, MCMC)
+   accept_alpha = accept_beta = accept_A = array(0, dim = c(p, p, n.samples)) 
+   accept_delta = accept_gamma = matrix(0, p, n.samples)
    
    # calculate logit(pi) and log(lambda)
    logitPi   = tcrossprod(x, alpha) + + matrix(delta, n, p, byrow = TRUE)
