@@ -1,4 +1,4 @@
-#' Function for evaluating log-likelihood of each observation for the j-th component of ZIPBN
+#' Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
 #'
 #' @param x_j data for the j-th variable (node)
 #' @param logitPi logit(pi)
@@ -20,8 +20,19 @@ llik_ZIPBN_j = function(x_j, logitPi, logLambda)
    return(llik)
 }
 
-# MCMC algorithm to sample parameters from posterior distributions for ZIPBN models
-mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples)
+#' Implementation of MCMC sampler for ZIPBN models
+#'
+#' @param x a matrix containing data
+#' @param starting a list of parameters' starting values for MCMC
+#' @param tuning a list of precision values for Metropolis sampler Normal proposal distribution
+#' @param priors a list of hyperparameter values for priors
+#' @param n.samples the number of MCMC iterations
+#'
+#' @return MCMC samples from posterior distributions of ZIPBN models
+#' @export
+#'
+#' @examples
+mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples = 5000)
 {
    # store the sample size and the number of variables (nodes)
    n = nrow(x)
