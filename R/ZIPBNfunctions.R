@@ -1,3 +1,17 @@
+# evaluate log-likelihood of each observation for the j-th component of ZIPBN with logit(pi) and log(lambda)
+llik_ZIPBN_j = function(x_j, logitPi, logLambda)
+{
+   # calculate pi and lambda
+   pi     = exp(logitPi) / (1 + exp(logitPi))
+   lambda = exp(logLambda)
+   
+   # evaluate and return log-likelihood of each observation
+   llik   = log(pi + (1 - pi) * exp(-lambda)) * (x_j == 0) + 
+      (log(1 - pi) + dpois(x_j, lambda, log = TRUE)) * (x_j > 0)
+   return(llik)
+}
+
+# MCMC algorithm to sample parameters from posterior distributions for ZIPBN models
 mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples)
 {
    # store the sample size and the number of variables (nodes)
