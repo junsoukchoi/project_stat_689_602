@@ -46,3 +46,13 @@ for (j in order_nodes)
 head(x)
 table(x)
 mean(x == 0)   # proprtion of zeros
+
+# evaluate log-likelihood for ZIPBN with true parameters
+llik_true = 0
+logitPi_true   = tcrossprod(x, alpha_true) + matrix(delta_true, n, p, byrow = TRUE)
+logLambda_true = tcrossprod(x, beta_true) + matrix(gamma_true, n, p, byrow = TRUE)
+for (j in 1 : p)
+{
+   llik_true = llik_true + sum(llik_ZIPBN_j(x[ , j], logitPi_true[ , j], logLambda_true[ , j]))
+}
+llik_true
