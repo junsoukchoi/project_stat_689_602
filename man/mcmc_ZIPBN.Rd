@@ -4,7 +4,7 @@
 \alias{mcmc_ZIPBN}
 \title{Implementation of MCMC sampler for ZIPBN models}
 \usage{
-mcmc_ZIPBN(x, starting, tuning, priors, n.samples = 5000)
+mcmc_ZIPBN(x, starting, tuning, priors, n_samples = 5000)
 }
 \arguments{
 \item{x}{a matrix containing data}
@@ -15,7 +15,7 @@ mcmc_ZIPBN(x, starting, tuning, priors, n.samples = 5000)
 
 \item{priors}{a list of hyperparameter values for priors}
 
-\item{n.samples}{the number of MCMC iterations}
+\item{n_samples}{the number of MCMC iterations}
 }
 \value{
 MCMC samples from posterior distributions of ZIPBN models
