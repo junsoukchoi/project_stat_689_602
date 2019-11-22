@@ -66,6 +66,10 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples = 5000)
    tau_MCMC   = matrix(NA, 4, n.samples)
    rho_MCMC   = rep(NA, n.samples)
    
+   # initialize acceptance indicators
+   accept_alpha = accept_beta = accept_A = array(0, dim = c(p, p, MCMC)) 
+   accept_delta = accept_gamma = matrix(0, p, MCMC)
+   
    # calculate logit(pi) and log(lambda)
    logitPi   = tcrossprod(x, alpha) + + matrix(delta, n, p, byrow = TRUE)
    logLambda = tcrossprod(x, beta) + matrix(gamma, n, p, byrow = TRUE)
@@ -97,14 +101,31 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples = 5000)
       A_MCMC[ , , t]     = A
       tau_MCMC[ , t]     = tau
       rho_MCMC[t]        = rho
+      
+      # print progress of the sampler
+      if (t %% 100 == 0) 
+         cat("iter: ", t, "\n")
+      if (t %% 1000 == 0)
+      {
+         cat("accept_alpha: \n", apply(accept_alpha[ , , (t - 999) : t], c(1, 2), mean), "\n")
+         cat("accept_beta: \n", apply(accept_beta[ , , (t - 999) : t], c(1, 2), mean), "\n")
+         cat("accept_delta: \n", apply(accept_delta[ , (t - 999) : t], 1, mean), "\n")
+         cat("accept_gamma: \n", apply(accept_gamma[ , (t - 999) : t], 1, mean), "\n")
+         cat("accept_A: \n", apply(accept_A[ , , (t - 999) : t], c(1, 2), mean), "\n")
+      }
    }
    
-   # return a list of MCMC samples
+   # return a list of MCMC samples and acceptance indicators
    return(list(alpha = alpha_MCMC,
                beta  = beta_MCMC,
                delta = delta_MCMC,
                gamma = gamma_MCMC,
                A     = A_MCMC,
                tau   = tau_MCMC,
-               rho   = rho_MCMC))
+               rho   = rho_MCMC,
+               accept_alpha = accept_alpha,
+               accept_beta  = accept_beta,
+               accept_delta = accept_delta,
+               accept_gamma = accept_gamma,
+               accept_A = accept_A))
 }
