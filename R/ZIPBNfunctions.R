@@ -1,4 +1,13 @@
-# evaluate log-likelihood of each observation for the j-th component of ZIPBN with logit(pi) and log(lambda)
+#' Function for evaluating log-likelihood of each observation for the j-th component of ZIPBN
+#'
+#' @param x_j data for the j-th variable (node)
+#' @param logitPi logit(pi)
+#' @param logLambda log(lambda)
+#'
+#' @return log-likelihood of each observation for the j-th component of ZIPBN 
+#' @export
+#'
+#' @examples
 llik_ZIPBN_j = function(x_j, logitPi, logLambda)
 {
    # calculate pi and lambda
