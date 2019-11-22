@@ -83,5 +83,6 @@ priors$c  = c(0.01, 0.01, 0.01, 0.01, 0.5)
 
 # run the mcmc_ZIPBN function
 out = mcmc_ZIPBN(x, starting, tuning, priors)
+apply(out$alpha, c(1, 2), mean)
 apply(out$tau, 1, mean)
 mean(out$rho)
