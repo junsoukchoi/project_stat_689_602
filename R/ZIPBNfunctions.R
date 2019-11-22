@@ -55,6 +55,10 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples)
    tau_MCMC   = matrix(NA, 4, n.samples)
    rho_MCMC   = rep(NA, n.samples)
    
+   # calculate logit(pi) and log(lambda)
+   logitPi   = tcrossprod(x, alpha) + + matrix(delta, n, p, byrow = TRUE)
+   logLambda = tcrossprod(x, beta) + matrix(gamma, n, p, byrow = TRUE)
+   
    # do MCMC iterations
    for (t in 1 : n.samples)
    {
@@ -64,6 +68,13 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples)
       # update gamma (Metropolis-Hastings step)
       # update A (Metropolis-Hastings step)
       # update tau (Gibbs sampling)
+      tau[1] = rgamma(1, shape = b[1] + p * (p - 1) / 2, 
+                      rate = c[1] + (nu * sum((A == 0) * alpha * alpha) + sum((A == 1) * alpha * alpha)) / 2)   # tau_alpha
+      tau[2] = rgamma(1, shape = b[2] + p * (p - 1) / 2, 
+                      rate = c[2] + (nu * sum((A == 0) * beta * beta) + sum((A == 1) * beta * beta)) / 2)   # tau_beta
+      tau[3] = rgamma(1, shape = b[3] + p / 2, rate = c[3] + sum(delta * delta) / 2)   # tau_delta
+      tau[4] = rgamma(1, shape = b[4] + p / 2, rate = c[4] + sum(gamma * gamma) / 2)   # tau_gamma
+      
       # update rho (Gibbs sampling)
       
       # store MCMC samples of iteration t
