@@ -2,7 +2,7 @@
 % Please edit documentation in R/ZIPBNfunctions.R
 \name{llik_ZIPBN_j}
 \alias{llik_ZIPBN_j}
-\title{Function for evaluating log-likelihood of each observation for the j-th component of ZIPBN}
+\title{Evaluate log-likelihood of each observation for the j-th component of ZIPBN model}
 \usage{
 llik_ZIPBN_j(x_j, logitPi, logLambda)
 }
@@ -17,5 +17,5 @@ llik_ZIPBN_j(x_j, logitPi, logLambda)
 log-likelihood of each observation for the j-th component of ZIPBN
 }
 \description{
-Function for evaluating log-likelihood of each observation for the j-th component of ZIPBN
+Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
 }
