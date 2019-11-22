@@ -1,3 +1,50 @@
+update_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, accept_alpha)
+{
+   for (j in 1 : ncol(p))
+   {
+      x_j = x[ , j]
+      logitPi_j   = logitPi[ , j]
+      logLambda_j = logLambda[ , j]
+      
+      for (k in 1 : ncol(p))
+      {
+         if (j != k)
+         {
+            alpha_old = alpha[j, k]
+            
+            if (A[j, k] == 0)
+            {
+               alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[1]))
+               logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
+               llik_old    = llik_ZIPBN_ij(x_j, logitPi_j, logLambda_j)
+               llik_new    = llik_ZIPBN_ij(x_j, logitPi_new, logLambda_j)
+               ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * nu * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
+            } else
+            {
+               alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[2]))
+               logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
+               llik_old    = llik_ZIPBN_ij(x_j, logitPi_j, logLambda_j)
+               llik_new    = llik_ZIPBN_ij(x_j, logitPi_new, logLambda_j)
+               ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
+            }
+            
+            if (runif(1) < min(1, ratio_MH))
+            {
+               alpha[j, k] = alpha_new
+               logitPi_j   = logitPi_new
+               accept_alpha[j, k, t] = 1
+            }
+         }
+      }
+      
+      logitPi[ , j] = logitPi_j
+   }
+   
+   return(list(alpha   = alpha, 
+               logitPi = logitPi,
+               accept_alpha = accept_alpha))
+}
+
 #' Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
 #'
 #' @param x_j data for the j-th variable (node)
@@ -26,13 +73,13 @@ llik_ZIPBN_j = function(x_j, logitPi, logLambda)
 #' @param starting a list of parameters' starting values for MCMC
 #' @param tuning a list of precision values for Metropolis sampler Normal proposal distribution
 #' @param priors a list of hyperparameter values for priors
-#' @param n.samples the number of MCMC iterations
+#' @param n_samples the number of MCMC iterations
 #'
 #' @return MCMC samples from posterior distributions of ZIPBN models
 #' @export
 #'
 #' @examples
-mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples = 5000)
+mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
 {
    # store the sample size and the number of variables (nodes)
    n = nrow(x)
@@ -59,30 +106,36 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples = 5000)
    c  = priors$c
    
    # initialize MCMC samples
-   A_MCMC     = array(NA, dim = c(p, p, n.samples))
-   alpha_MCMC = array(NA, dim = c(p, p, n.samples))
-   beta_MCMC  = array(NA, dim = c(p, p, n.samples))
-   delta_MCMC = matrix(NA, p, n.samples)
-   gamma_MCMC = matrix(NA, p, n.samples)
-   tau_MCMC   = matrix(NA, 4, n.samples)
-   rho_MCMC   = rep(NA, n.samples)
+   A_MCMC     = array(NA, dim = c(p, p, n_samples))
+   alpha_MCMC = array(NA, dim = c(p, p, n_samples))
+   beta_MCMC  = array(NA, dim = c(p, p, n_samples))
+   delta_MCMC = matrix(NA, p, n_samples)
+   gamma_MCMC = matrix(NA, p, n_samples)
+   tau_MCMC   = matrix(NA, 4, n_samples)
+   rho_MCMC   = rep(NA, n_samples)
    
    # initialize acceptance indicators
-   accept_alpha = accept_beta = accept_A = array(0, dim = c(p, p, n.samples)) 
-   accept_delta = accept_gamma = matrix(0, p, n.samples)
+   accept_alpha = accept_beta = accept_A = array(0, dim = c(p, p, n_samples)) 
+   accept_delta = accept_gamma = matrix(0, p, n_samples)
    
    # calculate logit(pi) and log(lambda)
    logitPi   = tcrossprod(x, alpha) + + matrix(delta, n, p, byrow = TRUE)
    logLambda = tcrossprod(x, beta) + matrix(gamma, n, p, byrow = TRUE)
    
    # do MCMC iterations
-   for (t in 1 : n.samples)
+   for (t in 1 : n_samples)
    {
       # update alpha (Metropolis-Hastings step)
+      out_alpha = update_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, accept_alpha)
+      alpha     = out_alpha$alpha
+      logitPi   = out_alpha$logitPi
+      accept_alpha = out_alpha$accept_alpha
+      
       # update beta (Metropolis-Hastings step)
       # update delta (Metropolis-Hastings step)
       # update gamma (Metropolis-Hastings step)
       # update A (Metropolis-Hastings step)
+      
       # update tau (Gibbs sampling)
       tau[1] = rgamma(1, shape = b[1] + p * (p - 1) / 2, 
                       rate = c[1] + (nu * sum((A == 0) * alpha * alpha) + sum((A == 1) * alpha * alpha)) / 2)   # tau_alpha
