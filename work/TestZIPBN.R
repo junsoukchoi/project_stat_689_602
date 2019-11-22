@@ -13,7 +13,7 @@ delta_true = rep(0, p)
 gamma_true = rep(0, p)
 
 # generate a random graph
-for (i in 1 : 5)
+for (i in 1 : 3)
 {
    id_edge = matrix(sample(1 : p, 2), ncol = 2)
    A_true[id_edge] = 1
@@ -47,7 +47,7 @@ head(x)
 table(x)
 mean(x == 0)   # proprtion of zeros
 
-# evaluate log-likelihood for ZIPBN with true parameters
+# evaluate log-likelihood for ZIPBN with true parameter values
 llik_true = 0
 logitPi_true   = tcrossprod(x, alpha_true) + matrix(delta_true, n, p, byrow = TRUE)
 logLambda_true = tcrossprod(x, beta_true) + matrix(gamma_true, n, p, byrow = TRUE)
@@ -56,3 +56,32 @@ for (j in 1 : p)
    llik_true = llik_true + sum(llik_ZIPBN_j(x[ , j], logitPi_true[ , j], logLambda_true[ , j]))
 }
 llik_true
+
+# use the mcmc_ZIPBN function to sample parameters from posterior distributions for ZIPBN
+starting = tuning = priors = list()
+
+# set starting values with true parameter values
+starting$A     = A_true
+starting$alpha = alpha_true
+starting$beta  = beta_true
+starting$delta = delta_true
+starting$gamma = gamma_true
+starting$tau   = c(10, 10, 1, 1)
+starting$rho   = 0.1
+
+# set precision values for Metropolis sampler Normal proposal distribution
+tuning$phi_alpha = c(100000000, 200)
+tuning$phi_beta  = c(100000000, 200)
+tuning$phi_delta = 30
+tuning$phi_gamma = 600
+tuning$phi_A     = c(100, 100, 100000000)
+
+# set hyperparameter values
+priors$nu = 10000^2
+priors$b  = c(0.01, 0.01, 0.01, 0.01, 0.5)
+priors$c  = c(0.01, 0.01, 0.01, 0.01, 0.5)
+
+# run the mcmc_ZIPBN function
+out = mcmc_ZIPBN(x, starting, tuning, priors)
+apply(out$tau, 1, mean)
+mean(out$rho)
