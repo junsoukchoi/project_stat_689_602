@@ -76,6 +76,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n.samples)
       tau[4] = rgamma(1, shape = b[4] + p / 2, rate = c[4] + sum(gamma * gamma) / 2)   # tau_gamma
       
       # update rho (Gibbs sampling)
+      rho = rbeta(1, shape1 = b[5] + sum(A == 1), shape2 = c[5] + sum(A == 0) - p)
       
       # store MCMC samples of iteration t
       alpha_MCMC[ , , t] = alpha
