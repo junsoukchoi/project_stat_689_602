@@ -30,6 +30,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
    phi_beta  = tuning$phi_beta
    phi_delta = tuning$phi_delta
    phi_gamma = tuning$phi_gamma
+   phi_A     = tuning$phi_A
    
    # set hyperparameters with supplied values
    nu = priors$nu
@@ -81,7 +82,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
       accept_gamma[ , t] = updates$accept
       
       # update A (Metropolis-Hastings step)
-      updates   = update_A(A, alpha, beta, tau, x, logitPi, logLambda, phi_alpha, phi_beta, nu)
+      updates   = update_A(A, alpha, beta, tau, rho, x, logitPi, logLambda, phi_A, nu)
       A         = updates$A
       alpha     = updates$alpha
       beta      = updates$beta
@@ -333,7 +334,7 @@ update_gamma = function(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
 }
 
 # update each element of A jointly with corresponding alpha and beta through Metropolis step
-update_A = function(A, alpha, beta, tau, x, logitPi, logLambda, phi_alpha, phi_beta, nu)
+update_A = function(A, alpha, beta, tau, rho, x, logitPi, logLambda, phi_A, nu)
 {
    p      = ncol(x)
    accept = matrix(0, p, p)
