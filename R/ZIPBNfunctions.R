@@ -57,40 +57,40 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
    # do MCMC iterations
    for (t in 1 : n_samples)
    {
-      # update alpha (Metropolis-Hastings step)
-      updates = update_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
-      alpha   = updates$alpha
-      logitPi = updates$logitPi
-      accept_alpha[ , , t] = updates$accept
+      # sample alpha (Metropolis-Hastings step)
+      sampling1 = sampling_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
+      alpha     = sampling1$alpha
+      logitPi   = sampling1$logitPi
+      accept_alpha[ , , t] = sampling1$accept
       
-      # update beta (Metropolis-Hastings step)
-      updates   = update_beta(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
-      beta      = updates$beta
-      logLambda = updates$logLambda
-      accept_beta[ , , t] = updates$accept
+      # sample beta (Metropolis-Hastings step)
+      sampling2 = sampling_beta(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
+      beta      = sampling2$beta
+      logLambda = sampling2$logLambda
+      accept_beta[ , , t] = sampling2$accept
       
-      # update delta (Metropolis-Hastings step)
-      updates = update_delta(delta, tau, x, logitPi, logLambda, phi_delta, nu)
-      delta   = updates$delta
-      logitPi = updates$logitPi
-      accept_delta[ , t] = updates$accept
+      # sample delta (Metropolis-Hastings step)
+      sampling3 = sampling_delta(delta, tau, x, logitPi, logLambda, phi_delta, nu)
+      delta     = sampling3$delta
+      logitPi   = sampling3$logitPi
+      accept_delta[ , t] = sampling3$accept
       
-      # update gamma (Metropolis-Hastings step)
-      updates   = update_gamma(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
-      gamma     = updates$gamma
-      logLambda = updates$logLambda
-      accept_gamma[ , t] = updates$accept
+      # sample gamma (Metropolis-Hastings step)
+      sampling4 = sampling_gamma(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
+      gamma     = sampling4$gamma
+      logLambda = sampling4$logLambda
+      accept_gamma[ , t] = sampling4$accept
       
-      # update A (Metropolis-Hastings step)
-      updates   = update_A(A, alpha, beta, tau, rho, x, logitPi, logLambda, phi_A, nu)
-      A         = updates$A
-      alpha     = updates$alpha
-      beta      = updates$beta
-      logitPi   = updates$logitPi
-      logLambda = updates$logLambda
-      accept_A[ , , t] = updates$accept
+      # sample A (Metropolis-Hastings step)
+      sampling5 = sampling_A(A, alpha, beta, tau, rho, x, logitPi, logLambda, phi_A, nu)
+      A         = sampling5$A
+      alpha     = sampling5$alpha
+      beta      = sampling5$beta
+      logitPi   = sampling5$logitPi
+      logLambda = sampling5$logLambda
+      accept_A[ , , t] = sampling5$accept
       
-      # update tau (Gibbs sampling)
+      # sample tau from their full conditionals
       tau[1] = rgamma(1, shape = b[1] + p * (p - 1) / 2, 
                       rate = c[1] + (nu * sum((A == 0) * alpha * alpha) + sum((A == 1) * alpha * alpha)) / 2)   # tau_alpha
       tau[2] = rgamma(1, shape = b[2] + p * (p - 1) / 2, 
@@ -98,7 +98,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
       tau[3] = rgamma(1, shape = b[3] + p / 2, rate = c[3] + sum(delta * delta) / 2)   # tau_delta
       tau[4] = rgamma(1, shape = b[4] + p / 2, rate = c[4] + sum(gamma * gamma) / 2)   # tau_gamma
       
-      # update rho (Gibbs sampling)
+      # sample rho from its full conditional
       rho = rbeta(1, shape1 = b[5] + sum(A == 1), shape2 = c[5] + sum(A == 0) - p)
       
       # store MCMC samples of iteration t
@@ -166,7 +166,7 @@ llik_ZIPBN_j = function(x_j, logitPi, logLambda)
 }
 
 # update each element of alpha through Metropolis step
-update_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
+sampling_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
 {
    p      = ncol(x)
    accept = matrix(0, p, p)
@@ -216,8 +216,8 @@ update_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
                accept  = accept))
 }
 
-# update each element of beta through Metropolis step
-update_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
+# sample each element of beta through Metropolis step
+sampling_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
 {
    p      = ncol(x)
    accept = matrix(0, p, p)
@@ -267,8 +267,8 @@ update_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
                accept    = accept))
 }
 
-# update each element of delta through Metropolis step
-update_delta = function(delta, tau, x, logitPi, logLambda, phi_delta, nu)
+# sample each element of delta through Metropolis step
+sampling_delta = function(delta, tau, x, logitPi, logLambda, phi_delta, nu)
 {
    p      = ncol(x)
    accept = rep(0, p)
@@ -300,8 +300,8 @@ update_delta = function(delta, tau, x, logitPi, logLambda, phi_delta, nu)
                accept  = accept))
 }
 
-# update each element of gamma through Metropolis step
-update_gamma = function(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
+# sample each element of gamma through Metropolis step
+sampling_gamma = function(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
 {
    p      = ncol(x)
    accept = rep(0, p)
@@ -333,8 +333,8 @@ update_gamma = function(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
                accept    = accept))
 }
 
-# update each element of A jointly with corresponding alpha and beta through Metropolis step
-update_A = function(A, alpha, beta, tau, rho, x, logitPi, logLambda, phi_A, nu)
+# sample each element of A jointly with corresponding alpha and beta through Metropolis step
+sampling_A = function(A, alpha, beta, tau, rho, x, logitPi, logLambda, phi_A, nu)
 {
    p      = ncol(x)
    accept = matrix(0, p, p)
@@ -426,3 +426,4 @@ update_A = function(A, alpha, beta, tau, rho, x, logitPi, logLambda, phi_A, nu)
                logLambda = logLambda,
                accept    = accept))
 }
+
