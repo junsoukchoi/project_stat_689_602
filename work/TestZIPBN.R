@@ -70,10 +70,10 @@ starting$tau   = c(10, 10, 1, 1)
 starting$rho   = 0.1
 
 # set precision values for Metropolis sampler Normal proposal distribution
-tuning$phi_alpha = c(100000000, 200)
-tuning$phi_beta  = c(100000000, 200)
-tuning$phi_delta = 30
-tuning$phi_gamma = 600
+tuning$phi_alpha = c(100000000, 300)
+tuning$phi_beta  = c(100000000, 300)
+tuning$phi_delta = 20
+tuning$phi_gamma = 400
 tuning$phi_A     = c(100, 100, 100000000)
 
 # set hyperparameter values
@@ -85,5 +85,7 @@ priors$c  = c(0.01, 0.01, 0.01, 0.01, 0.5)
 out = mcmc_ZIPBN(x, starting, tuning, priors)
 apply(out$alpha, c(1, 2), mean)
 apply(out$beta, c(1, 2), mean)
+apply(out$delta, 1, mean)
+apply(out$gamma, 1, mean)
 apply(out$tau, 1, mean)
 mean(out$rho)
