@@ -75,6 +75,10 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
       accept_delta[ , t] = updates$accept
       
       # update gamma (Metropolis-Hastings step)
+      updates   = update_gamma(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
+      gamma     = updates$gamma
+      logLambda = updates$logLambda
+      accept_gamma[ , t] = updates$accept
       # update A (Metropolis-Hastings step)
       
       # update tau (Gibbs sampling)
@@ -285,4 +289,37 @@ update_delta = function(delta, tau, x, logitPi, logLambda, phi_delta, nu)
    return(list(delta   = delta,
                logitPi = logitPi,
                accept  = accept))
+}
+
+# update each element of gamma through Metropolis step
+update_gamma = function(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
+{
+   p      = ncol(x)
+   accept = rep(0, p)
+   
+   for (j in 1 : p)
+   {
+      x_j         = x[ , j]
+      logitPi_j   = logitPi[ , j]
+      logLambda_j = logLambda[ , j]
+      
+      gamma_old = gamma[j]
+      
+      gamma_new     = rnorm(1, mean = gamma_old, sd = sqrt(1 / phi_gamma))
+      logLambda_new = logLambda_j + (gamma_new - gamma_old)
+      llik_old      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+      llik_new      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_new)
+      ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * tau[4] * (gamma_new * gamma_new - gamma_old * gamma_old))
+      
+      if (runif(1) < min(1, ratio_MH))
+      {
+         gamma[j]        = gamma_new
+         logLambda[ , j] = logLambda_new
+         accept[j]       = 1
+      }
+   }
+   
+   return(list(gamma     = gamma,
+               logLambda = logLambda,
+               accept    = accept))
 }
