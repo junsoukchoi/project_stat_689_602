@@ -94,14 +94,19 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
       
       # print progress of the sampler
       if (t %% 100 == 0) 
-         cat("iter: ", t, "\n")
+         cat("iter=", t, "\n")
       if (t %% 1000 == 0)
       {
-         cat("accept_alpha: \n", apply(accept_alpha[ , , (t - 999) : t], c(1, 2), mean), "\n")
-         cat("accept_beta: \n", apply(accept_beta[ , , (t - 999) : t], c(1, 2), mean), "\n")
-         cat("accept_delta: \n", apply(accept_delta[ , (t - 999) : t], 1, mean), "\n")
-         cat("accept_gamma: \n", apply(accept_gamma[ , (t - 999) : t], 1, mean), "\n")
-         cat("accept_A: \n", apply(accept_A[ , , (t - 999) : t], c(1, 2), mean), "\n")
+         cat("acceptance rates of alpha: \n")
+         print(apply(accept_alpha[ , , (t - 999) : t], c(1, 2), mean))
+         cat("acceptance rates of beta: \n")
+         print(apply(accept_beta[ , , (t - 999) : t], c(1, 2), mean))
+         cat("acceptance rates of delta: \n")
+         print(apply(accept_delta[ , (t - 999) : t], 1, mean))
+         cat("acceptance rates of gamma: \n")
+         print(apply(accept_gamma[ , (t - 999) : t], 1, mean))
+         cat("acceptance rates of A: \n")
+         print(apply(accept_A[ , , (t - 999) : t], c(1, 2), mean))
       }
    }
    
