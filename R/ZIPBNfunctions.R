@@ -1,76 +1,3 @@
-# update each element of alpha through Metropolis step
-update_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
-{
-   p      = ncol(x)
-   accept = matrix(0, p, p)
-   
-   for (j in 1 : p)
-   {
-      x_j = x[ , j]
-      logitPi_j   = logitPi[ , j]
-      logLambda_j = logLambda[ , j]
-      
-      for (k in 1 : p)
-      {
-         if (j != k)
-         {
-            alpha_old = alpha[j, k]
-            
-            if (A[j, k] == 0)
-            {
-               alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[1]))
-               logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
-               llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
-               llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
-               ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * nu * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
-            } else
-            {
-               alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[2]))
-               logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
-               llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
-               llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
-               ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
-            }
-            
-            if (runif(1) < min(1, ratio_MH))
-            {
-               alpha[j, k]  = alpha_new
-               logitPi_j    = logitPi_new
-               accept[j, k] = 1
-            }
-         }
-      }
-      
-      logitPi[ , j] = logitPi_j
-   }
-   
-   return(list(alpha   = alpha, 
-               logitPi = logitPi,
-               accept  = accept))
-}
-
-#' Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
-#'
-#' @param x_j data for the j-th variable (node)
-#' @param logitPi logit(pi)
-#' @param logLambda log(lambda)
-#'
-#' @return log-likelihood of each observation for the j-th component of ZIPBN 
-#' @export
-#'
-#' @examples
-llik_ZIPBN_j = function(x_j, logitPi, logLambda)
-{
-   # calculate pi and lambda
-   pi     = exp(logitPi) / (1 + exp(logitPi))
-   lambda = exp(logLambda)
-   
-   # evaluate and return log-likelihood of each observation
-   llik   = log(pi + (1 - pi) * exp(-lambda)) * (x_j == 0) + 
-      (log(1 - pi) + dpois(x_j, lambda, log = TRUE)) * (x_j > 0)
-   return(llik)
-}
-
 #' Implementation of MCMC sampler for ZIPBN models
 #'
 #' @param x a matrix containing data
@@ -130,12 +57,17 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
    for (t in 1 : n_samples)
    {
       # update alpha (Metropolis-Hastings step)
-      out_alpha = update_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
-      alpha     = out_alpha$alpha
-      logitPi   = out_alpha$logitPi
-      accept_alpha[ , , t] = out_alpha$accept
+      updt_alpha = update_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
+      alpha      = updt_alpha$alpha
+      logitPi    = updt_alpha$logitPi
+      accept_alpha[ , , t] = updt_alpha$accept
       
       # update beta (Metropolis-Hastings step)
+      updt_beta = update_beta(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
+      beta      = updt_beta$beta
+      logLambda = updt_beta$logLambda
+      accept_beta[ , , t] = updt_beta$accept
+      
       # update delta (Metropolis-Hastings step)
       # update gamma (Metropolis-Hastings step)
       # update A (Metropolis-Hastings step)
@@ -186,4 +118,128 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
                accept_delta = accept_delta,
                accept_gamma = accept_gamma,
                accept_A = accept_A))
+}
+
+#' Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
+#'
+#' @param x_j data for the j-th variable (node)
+#' @param logitPi logit(pi)
+#' @param logLambda log(lambda)
+#'
+#' @return log-likelihood of each observation for the j-th component of ZIPBN 
+#' @export
+#'
+#' @examples
+llik_ZIPBN_j = function(x_j, logitPi, logLambda)
+{
+   # calculate pi and lambda
+   pi     = exp(logitPi) / (1 + exp(logitPi))
+   lambda = exp(logLambda)
+   
+   # evaluate and return log-likelihood of each observation
+   llik   = log(pi + (1 - pi) * exp(-lambda)) * (x_j == 0) + 
+      (log(1 - pi) + dpois(x_j, lambda, log = TRUE)) * (x_j > 0)
+   return(llik)
+}
+
+# update each element of alpha through Metropolis step
+update_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
+{
+   p      = ncol(x)
+   accept = matrix(0, p, p)
+   
+   for (j in 1 : p)
+   {
+      x_j = x[ , j]
+      logitPi_j   = logitPi[ , j]
+      logLambda_j = logLambda[ , j]
+      
+      for (k in 1 : p)
+      {
+         if (j != k)
+         {
+            alpha_old = alpha[j, k]
+            
+            if (A[j, k] == 0)
+            {
+               alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[1]))
+               logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
+               llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+               llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
+               ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * nu * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
+            } else
+            {
+               alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[2]))
+               logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
+               llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+               llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
+               ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
+            }
+            
+            if (runif(1) < min(1, ratio_MH))
+            {
+               alpha[j, k]  = alpha_new
+               logitPi_j    = logitPi_new
+               accept[j, k] = 1
+            }
+         }
+      }
+      
+      logitPi[ , j] = logitPi_j
+   }
+   
+   return(list(alpha   = alpha, 
+               logitPi = logitPi,
+               accept  = accept))
+}
+
+# update each element of beta through Metropolis step
+update_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
+{
+   p      = ncol(x)
+   accept = matrix(0, p, p)
+   
+   for (j in 1 : p)
+   {
+      x_j = x[ , j]
+      logitPi_j   = logitPi[ , j]
+      logLambda_j = logLambda[ , j]
+      
+      for (k in 1 : p)
+      {
+         if (j != k)
+         {
+            beta_old = beta[j, k]
+            
+            if(A[j, k] == 0)
+            {
+               beta_new      = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_beta[1]))
+               logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old)
+               llik_old      = llik_ZIPBN_ij(x_j, logitPi_j, logLambda_j)
+               llik_new      = llik_ZIPBN_ij(x_j, logitPi_j, logLambda_new)
+               ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * nu * tau[2] * (beta_new * beta_new - beta_old * beta_old))
+            } else
+            {
+               beta_new      = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_beta[2]))
+               logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old)
+               llik_old      = llik_ZIPBN_ij(x_j, logitPi_j, logLambda_j)
+               llik_new      = llik_ZIPBN_ij(x_j, logitPi_j, logLambda_new)
+               ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * tau[2] * (beta_new * beta_new - beta_old * beta_old)) 
+            }
+            
+            if (runif(1) < min(1, ratio_MH))
+            {
+               beta[j, k]   = beta_new
+               logLambda_j  = logLambda_new
+               accept[j, k] = 1
+            }
+         }
+      }
+      
+      logLambda[ , j] = logLambda_j
+   }
+   
+   return(list(beta      = beta,
+               logLambda = logLambda,
+               accept    = accept))
 }
