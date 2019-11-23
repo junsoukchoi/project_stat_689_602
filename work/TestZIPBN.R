@@ -60,12 +60,18 @@ llik_true
 # use the mcmc_ZIPBN function to sample parameters from posterior distributions for ZIPBN
 starting = tuning = priors = list()
 
-# set starting values with true parameter values
-starting$A     = A_true
-starting$alpha = alpha_true
-starting$beta  = beta_true
-starting$delta = delta_true
-starting$gamma = gamma_true
+## set starting values with true parameter values
+#starting$alpha = alpha_true
+#starting$beta  = beta_true
+#starting$delta = delta_true
+#starting$gamma = gamma_true
+#starting$A     = A_true
+# set starting values with zero matrices and vectors
+starting$alpha = matrix(0, p, p)
+starting$beta  = matrix(0, p, p)
+starting$delta = rep(0, p)
+starting$gamma = rep(0, p)
+starting$A     = matrix(0, p, p)
 starting$tau   = c(10, 10, 1, 1)
 starting$rho   = 0.1
 
