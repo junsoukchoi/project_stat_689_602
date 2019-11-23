@@ -57,18 +57,23 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
    for (t in 1 : n_samples)
    {
       # update alpha (Metropolis-Hastings step)
-      updt_alpha = update_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
-      alpha      = updt_alpha$alpha
-      logitPi    = updt_alpha$logitPi
-      accept_alpha[ , , t] = updt_alpha$accept
+      updates = update_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
+      alpha   = updates$alpha
+      logitPi = updates$logitPi
+      accept_alpha[ , , t] = updates$accept
       
       # update beta (Metropolis-Hastings step)
-      updt_beta = update_beta(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
-      beta      = updt_beta$beta
-      logLambda = updt_beta$logLambda
-      accept_beta[ , , t] = updt_beta$accept
+      updates   = update_beta(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
+      beta      = updates$beta
+      logLambda = updates$logLambda
+      accept_beta[ , , t] = updates$accept
       
       # update delta (Metropolis-Hastings step)
+      updates = update_delta(delta, tau, x, logitPi, logLambda, phi_delta, nu)
+      delta   = updates$delta
+      logitPi = updates$logitPi
+      accept_delta[ , t] = updates$accept
+      
       # update gamma (Metropolis-Hastings step)
       # update A (Metropolis-Hastings step)
       
@@ -247,4 +252,37 @@ update_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
    return(list(beta      = beta,
                logLambda = logLambda,
                accept    = accept))
+}
+
+# update each element of delta through Metropolis step
+update_delta = function(delta, tau, x, logitPi, logLambda, phi_delta, nu)
+{
+   p      = ncol(x)
+   accept = rep(0, p)
+   
+   for (j in 1 : p)
+   {
+      x_j         = x[ , j]
+      logitPi_j   = logitPi[ , j]
+      logLambda_j = logLambda[ , j]
+      
+      delta_old   = delta[j]
+      
+      delta_new   = rnorm(1, mean = delta_old, sd = sqrt(1 / phi_delta))
+      logitPi_new = logitPi_j + (delta_new - delta_old)
+      llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+      llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
+      ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * tau[3] * (delta_new * delta_new - delta_old * delta_old))
+      
+      if (runif(1) < min(1, ratio_MH))
+      {
+         delta[j]      = delta_new
+         logitPi[ , j] = logitPi_new
+         accept[j]     = 1
+      }
+   }
+   
+   return(list(delta   = delta,
+               logitPi = logitPi,
+               accept  = accept))
 }
