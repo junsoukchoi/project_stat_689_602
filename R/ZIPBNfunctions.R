@@ -215,15 +215,15 @@ update_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
             {
                beta_new      = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_beta[1]))
                logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old)
-               llik_old      = llik_ZIPBN_ij(x_j, logitPi_j, logLambda_j)
-               llik_new      = llik_ZIPBN_ij(x_j, logitPi_j, logLambda_new)
+               llik_old      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+               llik_new      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_new)
                ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * nu * tau[2] * (beta_new * beta_new - beta_old * beta_old))
             } else
             {
                beta_new      = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_beta[2]))
                logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old)
-               llik_old      = llik_ZIPBN_ij(x_j, logitPi_j, logLambda_j)
-               llik_new      = llik_ZIPBN_ij(x_j, logitPi_j, logLambda_new)
+               llik_old      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+               llik_new      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_new)
                ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * tau[2] * (beta_new * beta_new - beta_old * beta_old)) 
             }
             
