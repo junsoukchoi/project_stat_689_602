@@ -74,7 +74,7 @@ tuning$phi_alpha = c(100000000, 300)
 tuning$phi_beta  = c(100000000, 300)
 tuning$phi_delta = 20
 tuning$phi_gamma = 400
-tuning$phi_A     = c(100, 100, 100000000)
+tuning$phi_A     = c(500, 500, 100000000)
 
 # set hyperparameter values
 priors$nu = 10000^2
@@ -87,5 +87,6 @@ apply(out$alpha, c(1, 2), mean)
 apply(out$beta, c(1, 2), mean)
 apply(out$delta, 1, mean)
 apply(out$gamma, 1, mean)
+apply(out$A, c(1, 2), mean)
 apply(out$tau, 1, mean)
 mean(out$rho)
