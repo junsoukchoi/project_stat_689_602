@@ -47,7 +47,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
    rho_MCMC   = rep(NA, n_samples)
    
    # initialize acceptance indicators
-   accept_alpha = accept_beta = array(0, dim = c(p, p, n_samples)) 
+   accept_alpha = accept_beta = accept_A = array(0, dim = c(p, p, n_samples)) 
    accept_delta = accept_gamma = matrix(0, p, n_samples)
    
    # calculate logit(pi) and log(lambda)
@@ -58,37 +58,39 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
    for (t in 1 : n_samples)
    {
       # sample alpha (Metropolis-Hastings step)
-      sampling1 = sampling_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
-      alpha     = sampling1$alpha
-      logitPi   = sampling1$logitPi
-      accept_alpha[ , , t] = sampling1$accept
+      out_alpha = sampling_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
+      alpha     = out_alpha$alpha
+      logitPi   = out_alpha$logitPi
+      accept_alpha[ , , t] = out_alpha$accept
       
       # sample beta (Metropolis-Hastings step)
-      sampling2 = sampling_beta(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
-      beta      = sampling2$beta
-      logLambda = sampling2$logLambda
-      accept_beta[ , , t] = sampling2$accept
+      out_beta  = sampling_beta(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
+      beta      = out_beta$beta
+      logLambda = out_beta$logLambda
+      accept_beta[ , , t] = out_beta$accept
       
       # sample delta (Metropolis-Hastings step)
-      sampling3 = sampling_delta(delta, tau, x, logitPi, logLambda, phi_delta, nu)
-      delta     = sampling3$delta
-      logitPi   = sampling3$logitPi
-      accept_delta[ , t] = sampling3$accept
+      out_delta = sampling_delta(delta, tau, x, logitPi, logLambda, phi_delta, nu)
+      delta     = out_delta$delta
+      logitPi   = out_delta$logitPi
+      accept_delta[ , t] = out_delta$accept
       
       # sample gamma (Metropolis-Hastings step)
-      sampling4 = sampling_gamma(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
-      gamma     = sampling4$gamma
-      logLambda = sampling4$logLambda
-      accept_gamma[ , t] = sampling4$accept
+      out_gamma = sampling_gamma(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
+      gamma     = out_gamma$gamma
+      logLambda = out_gamma$logLambda
+      accept_gamma[ , t] = out_gamma$accept
       
       # sample A (Metropolis-Hastings step)
-      sampling5 = sampling_A_each(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)
-
-      A         = sampling5$A
-      alpha     = sampling5$alpha
-      beta      = sampling5$beta
-      logitPi   = sampling5$logitPi
-      logLambda = sampling5$logLambda
+      out_A = sampling_A_each(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)
+      A         = out_A$A
+      alpha     = out_A$alpha
+      beta      = out_A$beta
+      delta     = out_A$delta
+      gamma     = out_A$gamma
+      logitPi   = out_A$logitPi
+      logLambda = out_A$logLambda
+      accept_A[ , , t] = out_A$accept
       
       # sample tau from their full conditionals
       tau[1] = rgamma(1, shape = b[1] + p * (p - 1) / 2, 
@@ -123,6 +125,8 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
          print(apply(accept_delta[ , (t - 999) : t], 1, mean))
          cat("acceptance rates of gamma: \n")
          print(apply(accept_gamma[ , (t - 999) : t], 1, mean))
+         cat("acceptance rates of A: \n")
+         print(apply(accept_A[ , , (t - 999) : t], c(1, 2), mean))
       }
    }
    
@@ -137,7 +141,8 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
                accept_alpha = accept_alpha,
                accept_beta  = accept_beta,
                accept_delta = accept_delta,
-               accept_gamma = accept_gamma))
+               accept_gamma = accept_gamma,
+               accept_A     = accept_A))
 }
 
 #' Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
@@ -383,14 +388,14 @@ sampling_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, l
                   
                   if (runif(1) < min(1, ratio_MH))
                   {
-                     A[j, k]     = A_new
-                     alpha[j, k] = alpha_new
-                     beta[j, k]  = beta_new
-                     delta[j]    = delta_new
-                     gamma[j]    = gamma_new
-                     logitPi_j   = logitPi_new
-                     logLambda_j = logLambda_new
-                     accept_A[j, k, t] = 1
+                     A[j, k]      = A_new
+                     alpha[j, k]  = alpha_new
+                     beta[j, k]   = beta_new
+                     delta[j]     = delta_new
+                     gamma[j]     = gamma_new
+                     logitPi_j    = logitPi_new
+                     logLambda_j  = logLambda_new
+                     accept[j, k] = 1
                   }
                } 
             } else
@@ -420,14 +425,14 @@ sampling_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, l
                
                if (runif(1) < min(1, ratio_MH))
                {
-                  A[j, k]     = A_new
-                  alpha[j, k] = alpha_new
-                  beta[j, k]  = beta_new
-                  delta[j]    = delta_new
-                  gamma[j]    = gamma_new
-                  logitPi_j   = logitPi_new
-                  logLambda_j = logLambda_new
-                  accept_A[j, k, t] = 1
+                  A[j, k]      = A_new
+                  alpha[j, k]  = alpha_new
+                  beta[j, k]   = beta_new
+                  delta[j]     = delta_new
+                  gamma[j]     = gamma_new
+                  logitPi_j    = logitPi_new
+                  logLambda_j  = logLambda_new
+                  accept[j, k] = 1
                }
             }
          }
