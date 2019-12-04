@@ -13,7 +13,8 @@ delta_true = rep(0, p)
 gamma_true = rep(0, p)
 
 # generate a random graph
-for (i in 1 : 3)
+n_edges = 2
+while (sum(A_true == 1) < n_edges)
 {
    id_edge = matrix(sample(1 : p, 2), ncol = 2)
    A_true[id_edge] = 1
@@ -66,11 +67,20 @@ starting = tuning = priors = list()
 #starting$delta = delta_true
 #starting$gamma = gamma_true
 #starting$A     = A_true
+#starting$tau   = c(10, 10, 1, 1)
+#starting$rho   = 0.1
+
 # set starting values with zero matrices and vectors
+m = colMeans(x)
+v = apply(x, 2, var)
+delta = (v - m) / (v - m + m * m)
+delta = log(delta / (1 - delta))
+gamma = (v - m + m * m) / m
+gamma = log(gamma)
 starting$alpha = matrix(0, p, p)
 starting$beta  = matrix(0, p, p)
-starting$delta = rep(0, p)
-starting$gamma = rep(0, p)
+starting$delta = delta
+starting$gamma = gamma
 starting$A     = matrix(0, p, p)
 starting$tau   = c(10, 10, 1, 1)
 starting$rho   = 0.1
@@ -80,7 +90,7 @@ tuning$phi_alpha = c(100000000, 300)
 tuning$phi_beta  = c(100000000, 300)
 tuning$phi_delta = 20
 tuning$phi_gamma = 400
-tuning$phi_A     = c(500, 500, 100000000)
+tuning$phi_A     = c(100000000, 50, 50, 5, 50)
 
 # set hyperparameter values
 priors$nu = 10000^2
