@@ -58,39 +58,38 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 
    for (t in 1 : n_samples)
    {
       # sample alpha (Metropolis-Hastings step)
-      out_alpha = sampling_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
-      alpha     = out_alpha$alpha
-      logitPi   = out_alpha$logitPi
-      accept_alpha[ , , t] = out_alpha$accept
+      samp_alpha = MH_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
+      alpha      = samp_alpha$alpha
+      logitPi    = samp_alpha$logitPi
+      accept_alpha[ , , t] = samp_alpha$accept
       
       # sample beta (Metropolis-Hastings step)
-      out_beta  = sampling_beta(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
-      beta      = out_beta$beta
-      logLambda = out_beta$logLambda
-      accept_beta[ , , t] = out_beta$accept
+      samp_beta = MH_beta(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
+      beta      = samp_beta$beta
+      logLambda = samp_beta$logLambda
+      accept_beta[ , , t] = samp_beta$accept
       
       # sample delta (Metropolis-Hastings step)
-      out_delta = sampling_delta(delta, tau, x, logitPi, logLambda, phi_delta, nu)
-      delta     = out_delta$delta
-      logitPi   = out_delta$logitPi
-      accept_delta[ , t] = out_delta$accept
+      samp_delta = MH_delta(delta, tau, x, logitPi, logLambda, phi_delta, nu)
+      delta      = samp_delta$delta
+      logitPi    = samp_delta$logitPi
+      accept_delta[ , t] = samp_delta$accept
       
       # sample gamma (Metropolis-Hastings step)
-      out_gamma = sampling_gamma(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
-      gamma     = out_gamma$gamma
-      logLambda = out_gamma$logLambda
-      accept_gamma[ , t] = out_gamma$accept
+      samp_gamma = MH_gamma(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
+      gamma      = samp_gamma$gamma
+      logLambda  = samp_gamma$logLambda
+      accept_gamma[ , t] = samp_gamma$accept
       
       # sample A (Metropolis-Hastings step)
-      out_A = sampling_A_each(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)
-      A         = out_A$A
-      alpha     = out_A$alpha
-      beta      = out_A$beta
-      delta     = out_A$delta
-      gamma     = out_A$gamma
-      logitPi   = out_A$logitPi
-      logLambda = out_A$logLambda
-      accept_A[ , , t] = out_A$accept
+      samp_A    = MH_A_each(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)      
+      A         = samp_A$A
+      alpha     = samp_A$alpha
+      beta      = samp_A$beta
+      delta     = samp_A$delta
+      gamma     = samp_A$gamma
+      logitPi   = samp_A$logitPi
+      logLambda = samp_A$logLambda
       
       # sample tau from their full conditionals
       tau[1] = rgamma(1, shape = b[1] + p * (p - 1) / 2, 
@@ -168,7 +167,7 @@ llik_ZIPBN_j = function(x_j, logitPi, logLambda)
 }
 
 # update each element of alpha through Metropolis step
-sampling_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
+MH_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
 {
    p      = ncol(x)
    accept = matrix(0, p, p)
@@ -219,7 +218,7 @@ sampling_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
 }
 
 # sample each element of beta through Metropolis step
-sampling_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
+MH_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
 {
    p      = ncol(x)
    accept = matrix(0, p, p)
@@ -270,7 +269,7 @@ sampling_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
 }
 
 # sample each element of delta through Metropolis step
-sampling_delta = function(delta, tau, x, logitPi, logLambda, phi_delta, nu)
+MH_delta = function(delta, tau, x, logitPi, logLambda, phi_delta, nu)
 {
    p      = ncol(x)
    accept = rep(0, p)
@@ -335,11 +334,11 @@ sampling_gamma = function(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
                accept    = accept))
 }
 
-# sample each element of A jointly with corresponding alpha, beta, delta, and gamma through Metropolis step
-sampling_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)
+# sample each element of A through Metropolis step (propose addition or deletion of an edge)
+# corresponding alpha, beta, delta, and gamma are jointly proposed with A 
+MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)
 {
-   p      = ncol(x)
-   accept = matrix(0, p, p)
+   p = ncol(x)
    
    for (j in 1 : p)
    {
@@ -388,6 +387,7 @@ sampling_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, l
                   
                   if (runif(1) < min(1, ratio_MH))
                   {
+                     cat("An edge (", j, ",", k, ") is added. \n")
                      A[j, k]      = A_new
                      alpha[j, k]  = alpha_new
                      beta[j, k]   = beta_new
@@ -395,7 +395,6 @@ sampling_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, l
                      gamma[j]     = gamma_new
                      logitPi_j    = logitPi_new
                      logLambda_j  = logLambda_new
-                     accept[j, k] = 1
                   }
                } 
             } else
@@ -425,6 +424,7 @@ sampling_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, l
                
                if (runif(1) < min(1, ratio_MH))
                {
+                  cat("An edge (", j, ",", k, ") is deleted. \n")
                   A[j, k]      = A_new
                   alpha[j, k]  = alpha_new
                   beta[j, k]   = beta_new
@@ -432,7 +432,6 @@ sampling_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, l
                   gamma[j]     = gamma_new
                   logitPi_j    = logitPi_new
                   logLambda_j  = logLambda_new
-                  accept[j, k] = 1
                }
             }
          }
@@ -448,6 +447,113 @@ sampling_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, l
                delta     = delta,
                gamma     = gamma,
                logitPi   = logitPi,
-               logLambda = logLambda,
-               accept    = accept))
+               logLambda = logLambda))
+}
+
+# sample A based on proposal of reversing an edge through Metropolis step 
+# corresponding alpha, beta, delta, and gamma are jointly proposed with A 
+MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, phi_A, nu)
+{
+   ids_A1 = which(A == 1, arr.ind = TRUE)
+   n_swap = nrow(ids_A1)
+   
+   if (n_swap > 0)
+   {
+      
+      for (s in 1 : n_swap)
+      {
+         j1 = k0 = ids_A1[s, 1]
+         j0 = k1 = ids_A1[s, 2]
+         
+         A[j1, k1] = 0
+         A[j0, k0] = 1
+         graph    = graph_from_adjacency_matrix(A)
+         A[j1, k1] = 1
+         A[j0, k0] = 0
+         
+         if (is_dag(graph))
+         {
+            x_j1 = x_k0 = x[ , j1]
+            x_j0 = x_k1 = x[ , j0]
+            logitPi_j1   = logitPi[ , j1]
+            logitPi_j0   = logitPi[ , j0]
+            logLambda_j1 = logLambda[ , j1]
+            logLambda_j0 = logLambda[ , j0]
+            
+            alpha_old1 = alpha[j1, k1]
+            alpha_old0 = alpha[j0, k0]
+            beta_old1  = beta[j1, k1]
+            beta_old0  = beta[j0, k0]
+            delta_old1 = delta[j1]
+            delta_old0 = delta[j0]
+            gamma_old1 = gamma[j1]
+            gamma_old0 = gamma[j0]
+            
+            alpha_new1 = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
+            alpha_new0 = rnorm(1, mean = alpha_old0, sd = sqrt(1 / phi_A[2]))
+            beta_new1  = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
+            beta_new0  = rnorm(1, mean = beta_old0, sd = sqrt(1 / phi_A[3]))
+            delta_new1 = rnorm(1, mean = delta_old1, sd = sqrt(1 / phi_A[4]))
+            delta_new0 = rnorm(1, mean = delta_old0, sd = sqrt(1 / phi_A[4]))
+            gamma_new1 = rnorm(1, mean = gamma_old1, sd = sqrt(1 / phi_A[5]))
+            gamma_new0 = rnorm(1, mean = gamma_old0, sd = sqrt(1 / phi_A[5]))
+            
+            logitPi_new1   = logitPi_j1 + x_k1 * (alpha_new1 - alpha_old1) + (delta_new1 - delta_old1)
+            logitPi_new0   = logitPi_j0 + x_k0 * (alpha_new0 - alpha_old0) + (delta_new0 - delta_old0)
+            logLambda_new1 = logLambda_j1 + x_k1 * (beta_new1 - beta_old1) + (gamma_new1 - gamma_old1)
+            logLambda_new0 = logLambda_j0 + x_k0 * (beta_new0 - beta_old0) + (gamma_new0 - gamma_old0)
+            
+            llik_old1 = llik_ZIPBN_j(x_j1, logitPi_j1, logLambda_j1)
+            llik_old0 = llik_ZIPBN_j(x_j0, logitPi_j0, logLambda_j0)
+            llik_new1 = llik_ZIPBN_j(x_j1, logitPi_new1, logLambda_new1)
+            llik_new0 = llik_ZIPBN_j(x_j0, logitPi_new0, logLambda_new0)
+            
+            ratio_MH = dnorm(alpha_old0, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
+               dnorm(beta_old0, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
+               dnorm(alpha_old1, mean = alpha_new1, sd = sqrt(1 / phi_A[2]), log = TRUE) + 
+               dnorm(beta_old1, mean = beta_new1, sd = sqrt(1 / phi_A[3]), log = TRUE) - 
+               dnorm(alpha_new0, mean = alpha_old0, sd = sqrt(1 / phi_A[2]), log = TRUE) - 
+               dnorm(beta_new0, mean = beta_old0, sd = sqrt(1 / phi_A[3]), log = TRUE) - 
+               dnorm(alpha_new1, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) - 
+               dnorm(beta_new1, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE)
+            ratio_MH = ratio_MH + sum(llik_new0 - llik_old0) + sum(llik_new1 - llik_old1) - 
+               0.5 * (tau[1] * (alpha_new0 * alpha_new0 - alpha_old1 * alpha_old1) + 
+                         tau[2] * (beta_new0 * beta_new0 - beta_old1 * beta_old1)) - 
+               0.5 * nu * (tau[1] * (alpha_new1 * alpha_new1 - alpha_old0 * alpha_old0) + 
+                              tau[2] * (beta_new1 * beta_new1 - beta_old0 * beta_old0)) - 
+               0.5 * tau[3] * (delta_new0 * delta_new0 - delta_old0 * delta_old0 + 
+                                  delta_new1 * delta_new1 - delta_old1 * delta_old1) - 
+               0.5 * tau[4] * (gamma_new0 * gamma_new0 - gamma_old0 * gamma_old0 +
+                                  gamma_new1 * gamma_new1 - gamma_old1 * gamma_old1)
+            ratio_MH = exp(ratio_MH)
+            
+            if (runif(1) < min(1, ratio_MH))
+            {
+               cat("An edge (", j1, ",", k1, ") is reverted to (", j0, ",", k0, "). \n")
+               A[j1, k1] = 0
+               A[j0, k0] = 1
+               alpha[j1, k1] = alpha_new1
+               alpha[j0, k0] = alpha_new0
+               beta[j1, k1]  = beta_new1
+               beta[j0, k0]  = beta_new0
+               delta[j1]     = delta_new1
+               delta[j0]     = delta_new0
+               gamma[j1]     = gamma_new1
+               gamma[j0]     = gamma_new0
+               logitPi[ , j1]   = logitPi_new1
+               logitPi[ , j0]   = logitPi_new0
+               logLambda[ , j1] = logLambda_new1
+               logLambda[ , j0] = logLambda_new0
+            }
+         } 
+      } 
+   }
+
+   return(list(A         = A,
+               alpha     = alpha,
+               beta      = beta,
+               delta     = delta,
+               gamma     = gamma,
+               logitPi   = logitPi,
+               logLambda = logLambda))
 }
