@@ -47,7 +47,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 
    rho_MCMC   = rep(NA, n_samples)
    
    # initialize acceptance indicators
-   accept_alpha = accept_beta = accept_A = array(0, dim = c(p, p, n_samples)) 
+   accept_alpha = accept_beta = array(0, dim = c(p, p, n_samples)) 
    accept_delta = accept_gamma = matrix(0, p, n_samples)
    
    # calculate logit(pi) and log(lambda)
@@ -83,7 +83,8 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 
       
       # sample A (Metropolis-Hastings step)
       # toss a coin to determine the strategy of sampling A 
-      # proposal of addition or deletion of edges versus proposal of reversal of edges   
+      # strategy 1: proposal of addition or deletion of edges 
+      # strategy 2: proposal of reversal of edges   
       if (runif(1) < 0.5)
          samp_A = MH_A_each(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)
       else
@@ -129,8 +130,6 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 
          print(apply(accept_delta[ , (t - 999) : t], 1, mean))
          cat("acceptance rates of gamma: \n")
          print(apply(accept_gamma[ , (t - 999) : t], 1, mean))
-         cat("acceptance rates of A: \n")
-         print(apply(accept_A[ , , (t - 999) : t], c(1, 2), mean))
       }
    }
    
@@ -145,8 +144,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 
                accept_alpha = accept_alpha[ , , (n_burnin + 1) : n_samples],
                accept_beta  = accept_beta[ , , (n_burnin + 1) : n_samples],
                accept_delta = accept_delta[ , (n_burnin + 1) : n_samples],
-               accept_gamma = accept_gamma[ , (n_burnin + 1) : n_samples],
-               accept_A     = accept_A[ , , (n_burnin + 1) : n_samples]))
+               accept_gamma = accept_gamma[ , (n_burnin + 1) : n_samples]))
 }
 
 #' Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
@@ -307,7 +305,7 @@ MH_delta = function(delta, tau, x, logitPi, logLambda, phi_delta, nu)
 }
 
 # sample each element of gamma through Metropolis step
-sampling_gamma = function(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
+MH_gamma = function(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
 {
    p      = ncol(x)
    accept = rep(0, p)

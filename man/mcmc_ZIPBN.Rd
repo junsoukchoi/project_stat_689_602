@@ -4,7 +4,8 @@
 \alias{mcmc_ZIPBN}
 \title{Implementation of MCMC sampler for ZIPBN models}
 \usage{
-mcmc_ZIPBN(x, starting, tuning, priors, n_samples = 5000)
+mcmc_ZIPBN(x, starting, tuning, priors, n_samples = 5000,
+  n_burnin = 2500)
 }
 \arguments{
 \item{x}{a matrix containing data}
