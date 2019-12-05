@@ -4,25 +4,35 @@
 #' @param starting a list of parameters' starting values for MCMC
 #' @param tuning a list of precision values for Metropolis sampler Normal proposal distribution
 #' @param priors a list of hyperparameter values for priors
-#' @param n_samples the number of MCMC iterations
+#' @param n_sample the number of MCMC iterations
 #'
 #' @return MCMC samples from posterior distributions of ZIPBN models
 #' @export
 #'
 #' @examples
-mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 2500, verbose = TRUE, n_report = 500)
+mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 2500, verbose = TRUE, n_report = 500)
 {
    # check compatibility of x
    if (missing(x))
       stop("error: x should be specified")
    if (class(x) != "matrix")
-      stop("error: class of x should be matrix")
-   if (any(x != as.integer(x) & x < 0))
+      stop("error: x should be a matrix")
+   if (any(x != as.integer(x) | x < 0))
       stop("error: Each element of x should be non-negative integer")
    
    # store the sample size and the number of variables (nodes)
    n = nrow(x)
    p = ncol(x)
+   
+   # check compatibility of n_sample, n_burnin, verbose, and n_report
+   if (n_sample != as.integer(n_sample) | n_sample <= 0)
+      stop("error: n_sample should be a natural number")
+   if (n_burnin != as.integer(n_burnin) | n_burnin >= n_sample | n_burnin <= 0)
+      stop("error: n_burnin should be a natural number less than n_sample")
+   if (class(verbose) != "logical")
+      stop("error: verbose should be a logical value")
+   if (n_report != as.integer(n_report) | n_report >= n_sample | n_report <= 0)
+      stop("error: n_report should be a natural number less than n_sample")
    
    # initialize parameters with starting values supplied
    alpha = starting$alpha
@@ -46,24 +56,24 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 
    c  = priors$c
    
    # initialize MCMC samples
-   A_MCMC     = array(NA, dim = c(p, p, n_samples))
-   alpha_MCMC = array(NA, dim = c(p, p, n_samples))
-   beta_MCMC  = array(NA, dim = c(p, p, n_samples))
-   delta_MCMC = matrix(NA, p, n_samples)
-   gamma_MCMC = matrix(NA, p, n_samples)
-   tau_MCMC   = matrix(NA, 4, n_samples)
-   rho_MCMC   = rep(NA, n_samples)
+   A_MCMC     = array(NA, dim = c(p, p, n_sample))
+   alpha_MCMC = array(NA, dim = c(p, p, n_sample))
+   beta_MCMC  = array(NA, dim = c(p, p, n_sample))
+   delta_MCMC = matrix(NA, p, n_sample)
+   gamma_MCMC = matrix(NA, p, n_sample)
+   tau_MCMC   = matrix(NA, 4, n_sample)
+   rho_MCMC   = rep(NA, n_sample)
    
    # initialize acceptance indicators
-   accept_alpha = accept_beta = array(0, dim = c(p, p, n_samples)) 
-   accept_delta = accept_gamma = matrix(0, p, n_samples)
+   accept_alpha = accept_beta = array(0, dim = c(p, p, n_sample)) 
+   accept_delta = accept_gamma = matrix(0, p, n_sample)
    
    # calculate logit(pi) and log(lambda)
    logitPi   = tcrossprod(x, alpha) + + matrix(delta, n, p, byrow = TRUE)
    logLambda = tcrossprod(x, beta) + matrix(gamma, n, p, byrow = TRUE)
    
    # do MCMC iterations
-   for (t in 1 : n_samples)
+   for (t in 1 : n_sample)
    {
       # sample alpha (Metropolis-Hastings step)
       samp_alpha = MH_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
@@ -147,13 +157,13 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 
    # return a list of 1. MCMC samples (after burn-in period) for each parameter 
    #                  2. Metropolis sampler acceptance rates for alpha, beta, delta, and gamma
    results = list()
-   results$alpha = alpha_MCMC[ , , (n_burnin + 1) : n_samples]
-   results$beta  = beta_MCMC[ , , (n_burnin + 1) : n_samples]
-   results$delta = delta_MCMC[ , (n_burnin + 1) : n_samples]
-   results$gamma = gamma_MCMC[ , (n_burnin + 1) : n_samples]
-   results$A     = A_MCMC[ , , (n_burnin + 1) : n_samples]
-   results$tau   = tau_MCMC[ , (n_burnin + 1) : n_samples]
-   results$rho   = rho_MCMC[(n_burnin + 1) : n_samples]
+   results$alpha = alpha_MCMC[ , , (n_burnin + 1) : n_sample]
+   results$beta  = beta_MCMC[ , , (n_burnin + 1) : n_sample]
+   results$delta = delta_MCMC[ , (n_burnin + 1) : n_sample]
+   results$gamma = gamma_MCMC[ , (n_burnin + 1) : n_sample]
+   results$A     = A_MCMC[ , , (n_burnin + 1) : n_sample]
+   results$tau   = tau_MCMC[ , (n_burnin + 1) : n_sample]
+   results$rho   = rho_MCMC[(n_burnin + 1) : n_sample]
    results$acceptance = list(alpha = 100 * apply(accept_alpha, c(1, 2), mean),
                              beta  = 100 * apply(accept_beta, c(1, 2), mean),
                              gamma = 100 * apply(accept_delta, 1, mean),
