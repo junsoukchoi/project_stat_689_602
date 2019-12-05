@@ -10,7 +10,7 @@
 #' @export
 #'
 #' @examples
-mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
+mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 2500)
 {
    # store the sample size and the number of variables (nodes)
    n = nrow(x)
@@ -131,18 +131,18 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000)
    }
    
    # return a list of MCMC samples and acceptance indicators
-   return(list(alpha = alpha_MCMC,
-               beta  = beta_MCMC,
-               delta = delta_MCMC,
-               gamma = gamma_MCMC,
-               A     = A_MCMC,
-               tau   = tau_MCMC,
-               rho   = rho_MCMC,
-               accept_alpha = accept_alpha,
-               accept_beta  = accept_beta,
-               accept_delta = accept_delta,
-               accept_gamma = accept_gamma,
-               accept_A     = accept_A))
+   return(list(alpha = alpha_MCMC[ , , (n_burnin + 1) : n_samples],
+               beta  = beta_MCMC[ , , (n_burnin + 1) : n_samples],
+               delta = delta_MCMC[ , (n_burnin + 1) : n_samples],
+               gamma = gamma_MCMC[ , (n_burnin + 1) : n_samples],
+               A     = A_MCMC[ , , (n_burnin + 1) : n_samples],
+               tau   = tau_MCMC[ , (n_burnin + 1) : n_samples],
+               rho   = rho_MCMC[(n_burnin + 1) : n_samples],
+               accept_alpha = accept_alpha[ , , (n_burnin + 1) : n_samples],
+               accept_beta  = accept_beta[ , , (n_burnin + 1) : n_samples],
+               accept_delta = accept_delta[ , (n_burnin + 1) : n_samples],
+               accept_gamma = accept_gamma[ , (n_burnin + 1) : n_samples],
+               accept_A     = accept_A[ , , (n_burnin + 1) : n_samples]))
 }
 
 #' Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
