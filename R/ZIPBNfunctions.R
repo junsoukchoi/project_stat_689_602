@@ -125,29 +125,33 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 
          if (t %% n_report == 0)
          {
             cat("acceptance rates of alpha: \n")
-            print(100 * apply(accept_alpha, c(1, 2), mean))
+            print(100 * apply(accept_alpha[ , , 1 : t], c(1, 2), mean))
             cat("acceptance rates of beta: \n")
-            print(100 * apply(accept_beta, c(1, 2), mean))
+            print(100 * apply(accept_beta[ , , 1 : t], c(1, 2), mean))
             cat("acceptance rates of delta: \n")
-            print(100 * apply(accept_delta, 1, mean))
+            print(100 * apply(accept_delta[ , 1 : t], 1, mean))
             cat("acceptance rates of gamma: \n")
-            print(100 * apply(accept_gamma, 1, mean))
+            print(100 * apply(accept_delta[ , 1 : t], 1, mean))
          }
       }
    }
    
-   # return a list of MCMC samples and Metropolis sampler acceptances
-   return(list(alpha = alpha_MCMC[ , , (n_burnin + 1) : n_samples],
-               beta  = beta_MCMC[ , , (n_burnin + 1) : n_samples],
-               delta = delta_MCMC[ , (n_burnin + 1) : n_samples],
-               gamma = gamma_MCMC[ , (n_burnin + 1) : n_samples],
-               A     = A_MCMC[ , , (n_burnin + 1) : n_samples],
-               tau   = tau_MCMC[ , (n_burnin + 1) : n_samples],
-               rho   = rho_MCMC[(n_burnin + 1) : n_samples],
-               accept_alpha = accept_alpha[ , , (n_burnin + 1) : n_samples],
-               accept_beta  = accept_beta[ , , (n_burnin + 1) : n_samples],
-               accept_delta = accept_delta[ , (n_burnin + 1) : n_samples],
-               accept_gamma = accept_gamma[ , (n_burnin + 1) : n_samples]))
+   # return a list of 1. MCMC samples (after burn-in period) for each parameter 
+   #                  2. Metropolis sampler acceptance rates for alpha, beta, delta, and gamma
+   results = list()
+   results$alpha = alpha_MCMC[ , , (n_burnin + 1) : n_samples]
+   results$beta  = beta_MCMC[ , , (n_burnin + 1) : n_samples]
+   results$delta = delta_MCMC[ , (n_burnin + 1) : n_samples]
+   results$gamma = gamma_MCMC[ , (n_burnin + 1) : n_samples]
+   results$A     = A_MCMC[ , , (n_burnin + 1) : n_samples]
+   results$tau   = tau_MCMC[ , (n_burnin + 1) : n_samples]
+   results$rho   = rho_MCMC[(n_burnin + 1) : n_samples]
+   results$acceptance = list(alpha = 100 * apply(accept_alpha, c(1, 2), mean),
+                             beta  = 100 * apply(accept_beta, c(1, 2), mean),
+                             gamma = 100 * apply(accept_delta, 1, mean),
+                             delta = 100 * apply(accept_delta, 1, mean))
+   class(results) = "ZIPBN"
+   return(results)
 }
 
 #' Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
