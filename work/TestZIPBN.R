@@ -5,7 +5,7 @@ set.seed(7)
 
 # initialize true parameters with zero matrices
 n = 1000
-p = 3
+p = 5
 A_true     = matrix(0, p, p)
 alpha_true = matrix(0, p, p)
 beta_true  = matrix(0, p, p)
@@ -13,18 +13,18 @@ delta_true = rep(0, p)
 gamma_true = rep(0, p)
 
 # generate a random graph
-n_edges = 2
+n_edges = 3
 while (sum(A_true == 1) < n_edges)
 {
    id_edge = matrix(sample(1 : p, 2), ncol = 2)
    A_true[id_edge] = 1
    g_true = igraph::graph_from_adjacency_matrix(t(A_true))
-   # if selected edge make a directed cycle, discard the edge 
+
+      # if selected edge make a directed cycle, discard the edge 
    if (!(igraph::is_dag(g_true)))
       A_true[id_edge] = 0
 }
 A_true
-sum(A_true)   # number of edges
 
 # determine true parameters given graph A
 alpha_true[A_true == 1] = 0.2
@@ -86,11 +86,11 @@ starting$tau   = c(10, 10, 1, 1)
 starting$rho   = 0.1
 
 # set precision values for Metropolis sampler Normal proposal distribution
-tuning$phi_alpha = c(100000000, 300)
+tuning$phi_alpha = c(100000000, 200)
 tuning$phi_beta  = c(100000000, 300)
 tuning$phi_delta = 20
 tuning$phi_gamma = 400
-tuning$phi_A     = c(100000000, 50, 50, 5, 50)
+tuning$phi_A     = c(10000000000, 10, 10, 1, 10)
 
 # set hyperparameter values
 priors$nu = 10000^2
@@ -99,10 +99,19 @@ priors$c  = c(0.01, 0.01, 0.01, 0.01, 0.5)
 
 # run the mcmc_ZIPBN function
 out = mcmc_ZIPBN(x, starting, tuning, priors)
+
+# results from the mcmc_ZIPBN function
+# acceptance rates
+apply(out$accept_alpha, c(1, 2), mean)
+apply(out$accept_beta, c(1, 2), mean)
+apply(out$accept_delta, 1, mean)
+apply(out$accept_gamma, 1, mean)
+
+# posterior means of ZIPBN parameters
+apply(out$A, c(1, 2), mean)
 apply(out$alpha, c(1, 2), mean)
 apply(out$beta, c(1, 2), mean)
 apply(out$delta, 1, mean)
 apply(out$gamma, 1, mean)
-apply(out$A, c(1, 2), mean)
 apply(out$tau, 1, mean)
 mean(out$rho)
