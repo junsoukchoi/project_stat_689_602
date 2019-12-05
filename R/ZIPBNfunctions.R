@@ -10,7 +10,7 @@
 #' @export
 #'
 #' @examples
-mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 2500)
+mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 2500, verbose = TRUE, n_report = 500)
 {
    # store the sample size and the number of variables (nodes)
    n = nrow(x)
@@ -117,23 +117,26 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 
       tau_MCMC[ , t]     = tau
       rho_MCMC[t]        = rho
       
-      # print progress of the sampler
-      if (t %% 100 == 0) 
-         cat("iter=", t, "\n")
-      if (t %% 1000 == 0)
+      # print progress of the sampler and Metropolis sampler acceptance
+      if (verbose)
       {
-         cat("acceptance rates of alpha: \n")
-         print(apply(accept_alpha[ , , (t - 999) : t], c(1, 2), mean))
-         cat("acceptance rates of beta: \n")
-         print(apply(accept_beta[ , , (t - 999) : t], c(1, 2), mean))
-         cat("acceptance rates of delta: \n")
-         print(apply(accept_delta[ , (t - 999) : t], 1, mean))
-         cat("acceptance rates of gamma: \n")
-         print(apply(accept_gamma[ , (t - 999) : t], 1, mean))
+         if (t %% n_report == 0) 
+            cat("iter=", t, "\n")
+         if (t %% n_report == 0)
+         {
+            cat("acceptance rates of alpha: \n")
+            print(100 * apply(accept_alpha, c(1, 2), mean))
+            cat("acceptance rates of beta: \n")
+            print(100 * apply(accept_beta, c(1, 2), mean))
+            cat("acceptance rates of delta: \n")
+            print(100 * apply(accept_delta, 1, mean))
+            cat("acceptance rates of gamma: \n")
+            print(100 * apply(accept_gamma, 1, mean))
+         }
       }
    }
    
-   # return a list of MCMC samples and acceptance indicators
+   # return a list of MCMC samples and Metropolis sampler acceptances
    return(list(alpha = alpha_MCMC[ , , (n_burnin + 1) : n_samples],
                beta  = beta_MCMC[ , , (n_burnin + 1) : n_samples],
                delta = delta_MCMC[ , (n_burnin + 1) : n_samples],
@@ -532,7 +535,7 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
             
             if (runif(1) < min(1, ratio_MH))
             {
-               cat("An edge (", j1, ",", k1, ") is reverted to (", j0, ",", k0, "). \n")
+               cat("An edge (", j1, ",", k1, ") is reversed to (", j0, ",", k0, "). \n")
                A[j1, k1] = 0
                A[j0, k0] = 1
                alpha[j1, k1] = alpha_new1
