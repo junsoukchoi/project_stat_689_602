@@ -12,6 +12,14 @@
 #' @examples
 mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 2500, verbose = TRUE, n_report = 500)
 {
+   # check compatibility of x
+   if (missing(x))
+      stop("error: x should be specified")
+   if (class(x) != "matrix")
+      stop("error: class of x should be matrix")
+   if (any(x != as.integer(x) & x < 0))
+      stop("error: Each element of x should be non-negative integer")
+   
    # store the sample size and the number of variables (nodes)
    n = nrow(x)
    p = ncol(x)
