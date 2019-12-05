@@ -82,7 +82,12 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_samples = 5000, n_burnin = 
       accept_gamma[ , t] = samp_gamma$accept
       
       # sample A (Metropolis-Hastings step)
-      samp_A    = MH_A_each(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)      
+      # toss a coin to determine the strategy of sampling A 
+      # proposal of addition or deletion of edges versus proposal of reversal of edges   
+      if (runif(1) < 0.5)
+         samp_A = MH_A_each(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)
+      else
+         samp_A = MH_A_rev(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, phi_A, nu)
       A         = samp_A$A
       alpha     = samp_A$alpha
       beta      = samp_A$beta
