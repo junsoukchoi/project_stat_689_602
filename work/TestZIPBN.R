@@ -92,20 +92,20 @@ tuning$phi_delta = 20
 tuning$phi_gamma = 400
 tuning$phi_A     = c(10000000000, 10, 10, 1, 10)
 
-# set hyperparameter values
+# set hyperparameter values for priors
 priors$nu = 10000^2
-priors$b  = c(0.01, 0.01, 0.01, 0.01, 0.5)
-priors$c  = c(0.01, 0.01, 0.01, 0.01, 0.5)
+priors$tau_alpha = c(0.01, 0.01)
+priors$tau_beta  = c(0.01, 0.01)
+priors$tau_delta = c(0.01, 0.01)
+priors$tau_gamma = c(0.01, 0.01)
+priors$rho       = c(0.5, 0.5)
 
 # run the mcmc_ZIPBN function
 out = mcmc_ZIPBN(x, starting, tuning, priors)
 
 # results from the mcmc_ZIPBN function
 # acceptance rates
-apply(out$accept_alpha, c(1, 2), mean)
-apply(out$accept_beta, c(1, 2), mean)
-apply(out$accept_delta, 1, mean)
-apply(out$accept_gamma, 1, mean)
+out$acceptance
 
 # posterior means of ZIPBN parameters
 apply(out$A, c(1, 2), mean)
