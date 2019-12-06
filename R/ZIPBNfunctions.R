@@ -34,7 +34,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    {
       alpha = starting$alpha
       if (nrow(alpha) != p | ncol(alpha) != p)
-         stop(paste("error: alpha should be a", p, "x", p, "matrix", sep = ""))
+         stop(paste("error: alpha should be a", p, "x", p, "matrix", sep = " "))
       if (any(diag(alpha) != 0))
          stop("error: diagonal of alpha should be zeros")
    }
@@ -44,7 +44,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    {
       beta = starting$beta
       if (nrow(beta) != p | ncol(beta) != p)
-         stop(paste("error: beta should be a", p, "x", p, "matrix", sep = ""))
+         stop(paste("error: beta should be a", p, "x", p, "matrix", sep = " "))
       if (any(diag(beta) != 0))
          stop("error: diagonal of beta should be zeros")
    }
@@ -62,7 +62,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    {
       gamma = starting$gamma
       if (length(gamma) != p)
-         stop(paste("error: gamma should be a vector of length", p, sep = ""))
+         stop(paste("error: gamma should be a vector of length", p, sep = " "))
    }
    if (!"A" %in% names(starting))
       stop("error: A should be specified in starting value list")
@@ -70,7 +70,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    {
       A = starting$A
       if (nrow(A) != p | ncol(A) != p | any(A != 0 & A != 1))
-         stop(paste("error: A should be a", p, "x", p, "matrix, of which each element is 0 or 1", sep = ""))
+         stop(paste("error: A should be a", p, "x", p, "matrix, of which each element is 0 or 1", sep = " "))
       if (any(diag(A) != 0))
          stop("error: diagonal of A should be zeros")
    }
@@ -166,7 +166,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
       stop("error: rho should be a positive vector of length 2")
    nu = priors$nu
    b  = c(priors$tau_alpha[1], priors$tau_beta[1], priors$tau_delta[1], priors$tau_gamma[1], priors$rho[1])
-   b  = c(priors$tau_alpha[2], priors$tau_beta[2], priors$tau_delta[2], priors$tau_gamma[2], priors$rho[2])
+   c  = c(priors$tau_alpha[2], priors$tau_beta[2], priors$tau_delta[2], priors$tau_gamma[2], priors$rho[2])
 
    # check compatibility of n_sample, n_burnin, verbose, and n_report
    if (n_sample != as.integer(n_sample) | n_sample <= 0)
@@ -263,18 +263,19 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
       # print progress of the sampler and Metropolis sampler acceptance
       if (verbose)
       {
-         if (t %% n_report == 0) 
-            cat("iter=", t, "\n")
          if (t %% n_report == 0)
          {
+            cat("\n")
+            cat("iter=", t, "\n")
             cat("acceptance rates of alpha: \n")
-            print(100 * apply(accept_alpha[ , , 1 : t], c(1, 2), mean))
+            print(round(100 * apply(accept_alpha[ , , 1 : t], c(1, 2), mean), digits = 2))
             cat("acceptance rates of beta: \n")
-            print(100 * apply(accept_beta[ , , 1 : t], c(1, 2), mean))
+            print(round(100 * apply(accept_beta[ , , 1 : t], c(1, 2), mean), digits = 2))
             cat("acceptance rates of delta: \n")
-            print(100 * apply(accept_delta[ , 1 : t], 1, mean))
+            print(round(100 * apply(accept_delta[ , 1 : t], 1, mean), digits = 2))
             cat("acceptance rates of gamma: \n")
-            print(100 * apply(accept_delta[ , 1 : t], 1, mean))
+            print(round(100 * apply(accept_delta[ , 1 : t], 1, mean), digits = 2))
+            cat("\n")
          }
       }
    }
@@ -540,7 +541,7 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
                   
                   if (runif(1) < min(1, ratio_MH))
                   {
-                     cat("An edge (", j, ",", k, ") is added. \n")
+                     cat("An edge", k, "->", j, "is added \n")
                      A[j, k]      = A_new
                      alpha[j, k]  = alpha_new
                      beta[j, k]   = beta_new
@@ -577,7 +578,7 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
                
                if (runif(1) < min(1, ratio_MH))
                {
-                  cat("An edge (", j, ",", k, ") is deleted. \n")
+                  cat("An edge", k, "->", j, "is deleted \n")
                   A[j, k]      = A_new
                   alpha[j, k]  = alpha_new
                   beta[j, k]   = beta_new
@@ -682,7 +683,7 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
             
             if (runif(1) < min(1, ratio_MH))
             {
-               cat("An edge (", j1, ",", k1, ") is reversed to (", j0, ",", k0, "). \n")
+               cat("An edge", k1, "->", j1, "is reversed to", k0, "->", j0, " \n")
                A[j1, k1] = 0
                A[j0, k0] = 1
                alpha[j1, k1] = alpha_new1

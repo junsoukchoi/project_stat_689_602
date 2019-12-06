@@ -2,10 +2,7 @@
 
 export(llik_ZIPBN_j)
 export(mcmc_ZIPBN)
+import(igraph)
 import(stats)
 importFrom(Rcpp,evalCpp)
-importFrom(igraph,as_ids)
-importFrom(igraph,graph_from_adjacency_matrix)
-importFrom(igraph,is_dag)
-importFrom(igraph,topo_sort)
 useDynLib(ZIPBN)
