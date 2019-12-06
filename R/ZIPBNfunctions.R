@@ -20,11 +20,12 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    if (any(x != as.integer(x) | x < 0))
       stop("error: Each element of x should be non-negative integer")
    
-   # store the sample size and the number of variables (nodes)
+   # store the sample size and the number of nodes
    n = nrow(x)
    p = ncol(x)
    
-   # check compatibility of starting value list and initialize parameters with starting values supplied
+   # check compatibility of starting value list and 
+   # initialize parameters with supplied starting values 
    if (missing(starting))
       stop("error: starting value list for the parameters should be specified")
    if (!"alpha" %in% names(starting))
@@ -87,12 +88,60 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    {
       rho = starting$rho
       if (rho < 0 | rho > 1)
-         stop("error: rho should be a numeric value between 0 and 1")
+         stop("error: rho should be between 0 and 1")
    }
    
    
-   #
-   
+   # check compatibility of tuning value list and 
+   # set precisions of Normal proposal distributions for Metropolis sampler with supplied tuning values 
+   if (missing(tuning))
+      stop("error: tuning value list for Metropolis sampler should be specified")
+   if (!"phi_alpha" %in% names(tuning))
+      stop("error: phi_alpha should be specified in tuning value list")
+   else
+   {
+      phi_alpha = tuning$phi_alpha
+      if (length(phi_alpha) != 2 | any(phi_alpha <= 0) | phi_alpha[1] < phi_alpha[2])
+         stop("error: phi_alpha should be a positive vector of length 2, of which first element is greater than second one")
+   }
+   if (!"phi_beta" %in% names(tuning))
+      stop("error: phi_beta should be specified in tuning value list")
+   else
+   {
+      phi_beta = tuning$phi_beta
+      if (length(phi_beta) != 2 | any(phi_beta <= 0) | phi_beta[1] <= phi_beta[2])
+         stop("error: phi_beta should be a positive vector of length 2, of which first element is greater than second one")
+   }
+   if (!"phi_delta" %in% names(tuning))
+      stop("error: phi_delta should be specified in tuning value list")
+   else
+   {
+      phi_delta = tuning$phi_delta
+      if (phi_delta <= 0)
+         stop("error: phi_delta should be non-negative")
+   }
+   if (!"phi_gamma" %in% names(tuning))
+      stop("error: phi_gamma should be specified in tuning value list")
+   else
+   {
+      phi_gamma = tuning$phi_gamma
+      if (phi_gamma <= 0)
+         stop("error: phi_gamma should be non-negative")
+   }
+   if (!"phi_A" %in% names(tuning))
+      stop("error: phi_A should be specified in tuning value list")
+   else
+   {
+      phi_A = tuning$phi_A
+      if (length(phi_A) != 5 | any(phi_A <= 0) | phi_A[1] <= phi_A[2] | phi_A[1] <= phi_A[3])
+         stop("error: phi_A should be a positive vector of length 5, of which first element is greater than the second and the third")
+   }
+
+   # set hyperparameters with supplied prior values
+   nu = priors$nu
+   b  = priors$b
+   c  = priors$c
+
    # check compatibility of n_sample, n_burnin, verbose, and n_report
    if (n_sample != as.integer(n_sample) | n_sample <= 0)
       stop("error: n_sample should be a natural number")
@@ -102,18 +151,6 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
       stop("error: verbose should be a logical value")
    if (n_report != as.integer(n_report) | n_report <= 0 | n_report >= n_sample)
       stop("error: n_report should be a natural number less than n_sample")
-   
-   # set precisions with supplied values for the Metropolis sampler Normal proposal distributions 
-   phi_alpha = tuning$phi_alpha
-   phi_beta  = tuning$phi_beta
-   phi_delta = tuning$phi_delta
-   phi_gamma = tuning$phi_gamma
-   phi_A     = tuning$phi_A
-   
-   # set hyperparameters with supplied values
-   nu = priors$nu
-   b  = priors$b
-   c  = priors$c
    
    # initialize MCMC samples
    A_MCMC     = array(NA, dim = c(p, p, n_sample))
@@ -128,41 +165,42 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    accept_alpha = accept_beta = array(0, dim = c(p, p, n_sample)) 
    accept_delta = accept_gamma = matrix(0, p, n_sample)
    
-   # calculate logit(pi) and log(lambda)
+   # calculate logit(pi) and log(lambda) with the starting values
    logitPi   = tcrossprod(x, alpha) + + matrix(delta, n, p, byrow = TRUE)
    logLambda = tcrossprod(x, beta) + matrix(gamma, n, p, byrow = TRUE)
    
-   # do MCMC iterations
+   # Metropolis-within-Gibbs sampler for ZIPBN models
+   # sample from the ZIPBN posterior through MCMC iterations
    for (t in 1 : n_sample)
    {
-      # sample alpha (Metropolis-Hastings step)
+      # sample alpha given the other parameters (Metropolis step)
       samp_alpha = MH_alpha(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
       alpha      = samp_alpha$alpha
       logitPi    = samp_alpha$logitPi
       accept_alpha[ , , t] = samp_alpha$accept
       
-      # sample beta (Metropolis-Hastings step)
+      # sample beta given the other parameters (Metropolis step)
       samp_beta = MH_beta(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
       beta      = samp_beta$beta
       logLambda = samp_beta$logLambda
       accept_beta[ , , t] = samp_beta$accept
       
-      # sample delta (Metropolis-Hastings step)
+      # sample delta given the other parameters (Metropolis step)
       samp_delta = MH_delta(delta, tau, x, logitPi, logLambda, phi_delta, nu)
       delta      = samp_delta$delta
       logitPi    = samp_delta$logitPi
       accept_delta[ , t] = samp_delta$accept
       
-      # sample gamma (Metropolis-Hastings step)
+      # sample gamma given the other parameters (Metropolis step)
       samp_gamma = MH_gamma(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
       gamma      = samp_gamma$gamma
       logLambda  = samp_gamma$logLambda
       accept_gamma[ , t] = samp_gamma$accept
       
-      # sample A (Metropolis-Hastings step)
+      # sample A jointly with alpha, beta, delta, and gamma, given tau and rho (Metropolis step)
       # toss a coin to determine the strategy of sampling A 
-      # strategy 1: proposal of addition or deletion of edges 
-      # strategy 2: proposal of reversal of edges   
+      # strategy 1: Metropolis sampler proposing addition or deletion of edges 
+      # strategy 2: Metropolis sampler proposing reversal of edges   
       if (runif(1) < 0.5)
          samp_A = MH_A_each(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)
       else
@@ -175,7 +213,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
       logitPi   = samp_A$logitPi
       logLambda = samp_A$logLambda
       
-      # sample tau from their full conditionals
+      # sample taus from their full conditionals
       tau[1] = rgamma(1, shape = b[1] + p * (p - 1) / 2, 
                       rate = c[1] + (nu * sum((A == 0) * alpha * alpha) + sum((A == 1) * alpha * alpha)) / 2)   # tau_alpha
       tau[2] = rgamma(1, shape = b[2] + p * (p - 1) / 2, 
