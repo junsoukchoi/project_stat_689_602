@@ -1,5 +1,4 @@
 #' @useDynLib ZIPBN
-#' @import stats
-#' @importFrom igraph graph_from_adjacency_matrix is_dag topo_sort as_ids
+#' @import stats igraph 
 #' @importFrom Rcpp evalCpp
 NULL
