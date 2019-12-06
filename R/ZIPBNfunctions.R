@@ -93,7 +93,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    
    
    # check compatibility of tuning value list and 
-   # set precisions of Normal proposal distributions for Metropolis sampler with supplied tuning values 
+   # set precisions of Normal proposal distributions for Metropolis samplers with supplied tuning values 
    if (missing(tuning))
       stop("error: tuning value list for Metropolis sampler should be specified")
    if (!"phi_alpha" %in% names(tuning))
@@ -102,7 +102,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    {
       phi_alpha = tuning$phi_alpha
       if (length(phi_alpha) != 2 | any(phi_alpha <= 0) | phi_alpha[1] < phi_alpha[2])
-         stop("error: phi_alpha should be a positive vector of length 2, of which first element is greater than second one")
+         stop("error: phi_alpha should be a positive vector of length 2, of which the first element is greater than the second element")
    }
    if (!"phi_beta" %in% names(tuning))
       stop("error: phi_beta should be specified in tuning value list")
@@ -110,7 +110,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    {
       phi_beta = tuning$phi_beta
       if (length(phi_beta) != 2 | any(phi_beta <= 0) | phi_beta[1] <= phi_beta[2])
-         stop("error: phi_beta should be a positive vector of length 2, of which first element is greater than second one")
+         stop("error: phi_beta should be a positive vector of length 2, of which the first element is greater than the second element")
    }
    if (!"phi_delta" %in% names(tuning))
       stop("error: phi_delta should be specified in tuning value list")
@@ -134,13 +134,39 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    {
       phi_A = tuning$phi_A
       if (length(phi_A) != 5 | any(phi_A <= 0) | phi_A[1] <= phi_A[2] | phi_A[1] <= phi_A[3])
-         stop("error: phi_A should be a positive vector of length 5, of which first element is greater than the second and the third")
+         stop("error: phi_A should be a positive vector of length 5, of which the first element is greater than the second and third elements")
    }
 
-   # set hyperparameters with supplied prior values
+   # check compatibility of priors list and set hyperparameters with supplied prior list
+   if (missing(priors)) 
+      stop("error: prior list for the parameters should be specified")
+   if (!"nu" %in% names(priors))
+      stop("error: nu should be specified in prior list")
+   if (priors$nu <= 0)
+      stop("error: nu should be a positive value")
+   if (!"tau_alpha" %in% names(priors))
+      stop("error: tau_alpha should be specified in prior list")
+   if (length(priors$tau_alpha) != 2 | any(priors$tau_alpha <= 0))
+      stop("error: tau_alpha should be a positive vector of length 2")
+   if (!"tau_beta" %in% names(priors))
+      stop("error: tau_beta should be specified in prior list")
+   if (length(priors$tau_beta) != 2 | any(priors$tau_beta <= 0))
+      stop("error: tau_beta should be a positive vector of length 2")
+   if (!"tau_delta" %in% names(priors))
+      stop("error: tau_delta should be specified in prior list")
+   if (length(priors$tau_delta) != 2 | any(priors$tau_delta <= 0))
+      stop("error: tau_delta should be a positive vector of length 2")
+   if (!"tau_gamma" %in% names(priors))
+      stop("error: tau_gamma should be specified in prior list")
+   if (length(priors$tau_gamma) != 2 | any(priors$tau_gamma <= 0))
+      stop("error: tau_gamma should be a positive vector of length 2")
+   if (!"rho" %in% names(priors))
+      stop("error: rho should be specified in prior list")
+   if (length(priors$rho) != 2 | any(priors$rho <= 0))
+      stop("error: rho should be a positive vector of length 2")
    nu = priors$nu
-   b  = priors$b
-   c  = priors$c
+   b  = c(priors$tau_alpha[1], priors$tau_beta[1], priors$tau_delta[1], priors$tau_gamma[1], priors$rho[1])
+   b  = c(priors$tau_alpha[2], priors$tau_beta[2], priors$tau_delta[2], priors$tau_gamma[2], priors$rho[2])
 
    # check compatibility of n_sample, n_burnin, verbose, and n_report
    if (n_sample != as.integer(n_sample) | n_sample <= 0)
@@ -169,7 +195,8 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    logitPi   = tcrossprod(x, alpha) + + matrix(delta, n, p, byrow = TRUE)
    logLambda = tcrossprod(x, beta) + matrix(gamma, n, p, byrow = TRUE)
    
-   # Metropolis-within-Gibbs sampler for ZIPBN models
+   
+   ###--------------------------- Metropolis-within-Gibbs sampler for ZIPBN models -------------------------###
    # sample from the ZIPBN posterior through MCMC iterations
    for (t in 1 : n_sample)
    {
