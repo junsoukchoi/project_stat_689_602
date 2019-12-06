@@ -10,7 +10,7 @@
 #' @export
 #'
 #' @examples
-mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 2500, verbose = TRUE, n_report = 500)
+mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3000, verbose = TRUE, n_report = 500)
 {
    # check compatibility of x
    if (missing(x))
@@ -24,24 +24,84 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 2
    n = nrow(x)
    p = ncol(x)
    
+   # check compatibility of starting value list and initialize parameters with starting values supplied
+   if (missing(starting))
+      stop("error: starting value list for the parameters should be specified")
+   if (!"alpha" %in% names(starting))
+      stop("error: alpha should be specified in starting value list")
+   else
+   {
+      alpha = starting$alpha
+      if (nrow(alpha) != p | ncol(alpha) != p)
+         stop(paste("error: alpha should be a", p, "x", p, "matrix", sep = ""))
+      if (any(diag(alpha) != 0))
+         stop("error: diagonal of alpha should be zeros")
+   }
+   if (!"beta" %in% names(starting))
+      stop("error: beta should be specified in starting value list")
+   else
+   {
+      beta = starting$beta
+      if (nrow(beta) != p | ncol(beta) != p)
+         stop(paste("error: beta should be a", p, "x", p, "matrix", sep = ""))
+      if (any(diag(beta) != 0))
+         stop("error: diagonal of beta should be zeros")
+   }
+   if (!"delta" %in% names(starting))
+      stop("error: delta should be specified in starting value list")
+   else
+   {
+      delta = starting$delta
+      if (length(delta) != p)
+         stop(paste("error: delta should be a vector of length", p, sep = ""))
+   }
+   if (!"gamma" %in% names(starting))
+      stop("error: gamma should be specified in starting value list")
+   else
+   {
+      gamma = starting$gamma
+      if (length(gamma) != p)
+         stop(paste("error: gamma should be a vector of length", p, sep = ""))
+   }
+   if (!"A" %in% names(starting))
+      stop("error: A should be specified in starting value list")
+   else
+   {
+      A = starting$A
+      if (nrow(A) != p | ncol(A) != p | any(A != 0 & A != 1))
+         stop(paste("error: A should be a", p, "x", p, "matrix, of which each element is 0 or 1", sep = ""))
+      if (any(diag(A) != 0))
+         stop("error: diagonal of A should be zeros")
+   }
+   if (!"tau" %in% names(starting))
+      stop("error: tau should be specified in starting value list")
+   else
+   {
+      tau = starting$tau
+      if (length(tau) != 4 | any(tau <= 0))
+         stop("error: tau should be a positive vector of length 4")
+   }
+   if (!"rho" %in% names(starting))
+      stop("error: rho should be specified in starting value list")
+   else
+   {
+      rho = starting$rho
+      if (rho < 0 | rho > 1)
+         stop("error: rho should be a numeric value between 0 and 1")
+   }
+   
+   
+   #
+   
    # check compatibility of n_sample, n_burnin, verbose, and n_report
    if (n_sample != as.integer(n_sample) | n_sample <= 0)
       stop("error: n_sample should be a natural number")
-   if (n_burnin != as.integer(n_burnin) | n_burnin >= n_sample | n_burnin <= 0)
+   if (n_burnin != as.integer(n_burnin) | n_burnin <= 0 | n_burnin >= n_sample)
       stop("error: n_burnin should be a natural number less than n_sample")
    if (class(verbose) != "logical")
       stop("error: verbose should be a logical value")
-   if (n_report != as.integer(n_report) | n_report >= n_sample | n_report <= 0)
+   if (n_report != as.integer(n_report) | n_report <= 0 | n_report >= n_sample)
       stop("error: n_report should be a natural number less than n_sample")
-   
-   # initialize parameters with starting values supplied
-   alpha = starting$alpha
-   beta  = starting$beta
-   delta = starting$delta
-   gamma = starting$gamma
-   A     = starting$A
-   tau   = starting$tau
-   rho   = starting$rho
    
    # set precisions with supplied values for the Metropolis sampler Normal proposal distributions 
    phi_alpha = tuning$phi_alpha
