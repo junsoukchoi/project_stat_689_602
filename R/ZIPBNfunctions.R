@@ -352,7 +352,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 2
       # sample rho from its full conditional
       rho = rbeta(1, shape1 = b[5] + sum(A == 1), shape2 = c[5] + sum(A == 0) - p)
       
-      # store MCMC samples of iteration t
+      # save MCMC samples of iteration t
       alpha_MCMC[ , , t] = alpha
       beta_MCMC[ , , t]  = beta
       delta_MCMC[ , t]   = delta
@@ -401,6 +401,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 2
    return(results)
 }
 
+
 # Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
 llik_ZIPBN_j = function(x_j, logitPi, logLambda)
 {
@@ -414,27 +415,36 @@ llik_ZIPBN_j = function(x_j, logitPi, logLambda)
    return(llik)
 }
 
-# update each element of alpha through Metropolis step
+
+# sample each element of alpha through Metropolis step
 MH_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
 {
+   # get the number of nodes and initialize acceptance indicators
    p      = ncol(x)
    accept = matrix(0, p, p)
    
    for (j in 1 : p)
    {
+      # get data, logit(pi) and log(lambda) for the node j
       x_j = x[ , j]
       logitPi_j   = logitPi[ , j]
       logLambda_j = logLambda[ , j]
       
       for (k in 1 : p)
       {
+         # if j = k, do not sample 
          if (j == k) next
          
+         # current value of \alpha_{jk}
          alpha_old = alpha[j, k]
          
+         # divide into two cases with and without the edge k -> j
          if (A[j, k] == 0)
          {
+            # propose new value of \alpha_{jk} using Normal proposal distribution
             alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[1]))
+            
+            # calculate MH ratio
             logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
             llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
             llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
@@ -442,50 +452,65 @@ MH_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
          } 
          else
          {
+            # propose new value of \alpha_{jk} using Normal proposal distribution
             alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[2]))
+            
+            # calculate MH ratio
             logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
             llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
             llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
             ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
          }
          
+         # accept the proposed value with probability of min(1, MH ratio)
          if (runif(1) < min(1, ratio_MH))
          {
             alpha[j, k]  = alpha_new
-            logitPi_j    = logitPi_new
-            accept[j, k] = 1
+            logitPi_j    = logitPi_new   # update logit(pi) for the node j 
+            accept[j, k] = 1             # 1 if proposal accepted
          }
       }
       
+      # save the updated logit(pi) for the node j
       logitPi[ , j] = logitPi_j
    }
    
+   # return the updated alpha and logit(pi), and the acceptance indicators 
    return(list(alpha   = alpha, 
                logitPi = logitPi,
                accept  = accept))
 }
 
+
 # sample each element of beta through Metropolis step
 MH_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
 {
+   # get the number of nodes and initialize acceptance indicators
    p      = ncol(x)
    accept = matrix(0, p, p)
    
    for (j in 1 : p)
    {
+      # get data, logit(pi) and log(lambda) for the node j
       x_j = x[ , j]
       logitPi_j   = logitPi[ , j]
       logLambda_j = logLambda[ , j]
       
       for (k in 1 : p)
       {
+         # if j = k, do not sample 
          if (j == k) next
          
+         # current value of \beta_{jk}
          beta_old = beta[j, k]
          
+         # divide into two cases with and without the edge k -> j
          if(A[j, k] == 0)
          {
+            # propose new value of \beta_{jk} using Normal proposal distribution
             beta_new      = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_beta[1]))
+            
+            # calculate MH ratio
             logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old)
             llik_old      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
             llik_new      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_new)
@@ -493,134 +518,165 @@ MH_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
          } 
          else
          {
+            # propose new value of \beta_{jk} using Normal proposal distribution
             beta_new      = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_beta[2]))
+            
+            # calculate MH ratio
             logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old)
             llik_old      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
             llik_new      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_new)
             ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * tau[2] * (beta_new * beta_new - beta_old * beta_old)) 
          }
          
+         # accept the proposed value with probability of min(1, MH ratio)
          if (runif(1) < min(1, ratio_MH))
          {
             beta[j, k]   = beta_new
-            logLambda_j  = logLambda_new
-            accept[j, k] = 1
+            logLambda_j  = logLambda_new   # update log(lambda) for the node j
+            accept[j, k] = 1               # 1 if proposal accepted
          }
       }
       
+      # save the updated log(lambda) for the node j
       logLambda[ , j] = logLambda_j
    }
    
+   # return the updated beta and log(lambda), and the acceptance indicators 
    return(list(beta      = beta,
                logLambda = logLambda,
                accept    = accept))
 }
 
+
 # sample each element of delta through Metropolis step
 MH_delta = function(delta, tau, x, logitPi, logLambda, phi_delta, nu)
 {
+   # get the number of nodes and initialize acceptance indicators
    p      = ncol(x)
    accept = rep(0, p)
    
    for (j in 1 : p)
    {
+      # get data, logit(pi) and log(lambda) for the node j
       x_j         = x[ , j]
       logitPi_j   = logitPi[ , j]
       logLambda_j = logLambda[ , j]
       
+      # current value of \delta_j
       delta_old   = delta[j]
       
+      # propose new value of \delta_j using Normal proposal distribution
       delta_new   = rnorm(1, mean = delta_old, sd = sqrt(1 / phi_delta))
+      
+      # calculate MH ratio
       logitPi_new = logitPi_j + (delta_new - delta_old)
       llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
       llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
       ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * tau[3] * (delta_new * delta_new - delta_old * delta_old))
       
+      # accept the proposed value with probability of min(1, MH ratio)
       if (runif(1) < min(1, ratio_MH))
       {
          delta[j]      = delta_new
-         logitPi[ , j] = logitPi_new
-         accept[j]     = 1
+         logitPi[ , j] = logitPi_new   # update and save logit(pi) for the node j 
+         accept[j]     = 1             # 1 if proposal accepted
       }
    }
    
+   # return the updated delta and logit(pi), and the acceptance indicators
    return(list(delta   = delta,
                logitPi = logitPi,
                accept  = accept))
 }
 
+
 # sample each element of gamma through Metropolis step
 MH_gamma = function(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
 {
+   # get the number of nodes and initialize acceptance indicators
    p      = ncol(x)
    accept = rep(0, p)
    
    for (j in 1 : p)
    {
+      # get data, logit(pi) and log(lambda) for the node j
       x_j         = x[ , j]
       logitPi_j   = logitPi[ , j]
       logLambda_j = logLambda[ , j]
       
+      # current value of \gamma_j
       gamma_old = gamma[j]
       
+      # propose new value of \gamma_j using Normal proposal distribution
       gamma_new     = rnorm(1, mean = gamma_old, sd = sqrt(1 / phi_gamma))
+      
+      # calculate MH ratio
       logLambda_new = logLambda_j + (gamma_new - gamma_old)
       llik_old      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
       llik_new      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_new)
       ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * tau[4] * (gamma_new * gamma_new - gamma_old * gamma_old))
       
+      # accept the proposed value with probability of min(1, MH ratio)
       if (runif(1) < min(1, ratio_MH))
       {
          gamma[j]        = gamma_new
-         logLambda[ , j] = logLambda_new
-         accept[j]       = 1
+         logLambda[ , j] = logLambda_new   # update and save log(lambda) for the node j
+         accept[j]       = 1               # 1 if proposal accepted
       }
    }
    
+   # return the updated gamma and log(lambda), and the acceptance indicators
    return(list(gamma     = gamma,
                logLambda = logLambda,
                accept    = accept))
 }
 
+
 # sample each element of A through Metropolis step (propose addition or deletion of an edge)
 # corresponding alpha, beta, delta, and gamma are jointly proposed with A 
 MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu, verbose)
 {
+   # get the number of nodes
    p = ncol(x)
    
    for (j in 1 : p)
    {
+      # get data, logit(pi) and log(lambda) for the node j
       x_j = x[ , j]
       logitPi_j   = logitPi[ , j]
       logLambda_j = logLambda[ , j]
       
       for (k in 1 : p)
       {
+         # if j = k, do not sample 
          if (j == k) next
          
+         # current value of \alpha_{jk}, \beta_{jk}, \delta_j, and \gamma_j
          alpha_old = alpha[j, k]
          beta_old  = beta[j, k]
          delta_old = delta[j]
          gamma_old = gamma[j]
          
+         # divide into two cases: 1. there is currently no edge k -> j, 2. there exist an edge k -> j now 
          if (A[j, k] == 0)
          {
+            # if there is no edge k -> j, propose addition of the edge unless it makes a cycle
             A[j, k] = A_new = 1
             graph   = graph_from_adjacency_matrix(A)
             A[j, k] = 0
-            
             if (!is_dag(graph)) next
             
+            # propose new value of \alpha_{jk}, \beta_{jk}, \delta_j, and \gamma_j using Normal proposal distribution
             alpha_new = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_A[2]))
             beta_new  = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_A[3]))
             delta_new = rnorm(1, mean = delta_old, sd = sqrt(1 / phi_A[4]))
             gamma_new = rnorm(1, mean = gamma_old, sd = sqrt(1 / phi_A[5]))
             
+            # calculate MH ratio
             logitPi_new   = logitPi_j + x[ , k] * (alpha_new - alpha_old) + (delta_new - delta_old)
             logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old) + (gamma_new - gamma_old)
             llik_old  = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
             llik_new  = llik_ZIPBN_j(x_j, logitPi_new, logLambda_new)
-            
             ratio_MH = dnorm(alpha_old, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
                dnorm(beta_old, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) - 
                dnorm(alpha_new, mean = alpha_old, sd = sqrt(1 / phi_A[2]), log = TRUE) - 
@@ -633,6 +689,7 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
                log(rho) - log(1 - rho)
             ratio_MH = exp(ratio_MH)
             
+            # accept the proposed values with probabiliof min(1, MH ratio)ty 
             if (runif(1) < min(1, ratio_MH))
             {
                A[j, k]      = A_new
@@ -640,26 +697,31 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
                beta[j, k]   = beta_new
                delta[j]     = delta_new
                gamma[j]     = gamma_new
-               logitPi_j    = logitPi_new
-               logLambda_j  = logLambda_new
+               logitPi_j    = logitPi_new     # update logit(pi) for the node j
+               logLambda_j  = logLambda_new   # update log(lambda) for the node j
                
+               # print addition of the edge if verbose = TRUE
                if (verbose)
                   cat("An edge", k, "->", j, "is added \n")
             }
          } 
          else
          {
+            # if there is an edge k -> j, propose deletion of the edge
             A_new = 0
+            
+            # propose new value of \alpha_{jk}, \beta_{jk}, \delta_j, and \gamma_j using Normal proposal distribution
+            # Normal proposal distributions for \alpha_{jk} and \beta_{jk} have mean 0
             alpha_new = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
             beta_new  = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
             delta_new = rnorm(1, mean = delta_old, sd = sqrt(1 / phi_A[4]))
             gamma_new = rnorm(1, mean = gamma_old, sd = sqrt(1 / phi_A[5]))
             
+            # calculate MH ratio
             logitPi_new   = logitPi_j + x[ , k] * (alpha_new - alpha_old) + (delta_new - delta_old)
             logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old) + (gamma_new - gamma_old)
             llik_old  = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
             llik_new  = llik_ZIPBN_j(x_j, logitPi_new, logLambda_new)
-            
             ratio_MH = dnorm(alpha_old, mean = alpha_new, sd = sqrt(1 / phi_A[2]), log = TRUE) + 
                dnorm(beta_old, mean = beta_new, sd = sqrt(1 / phi_A[3]), log = TRUE) - 
                dnorm(alpha_new, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) - 
@@ -672,6 +734,7 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
                log(1 - rho) - log(rho)
             ratio_MH = exp(ratio_MH)
             
+            # accept the proposed value with probability of min(1, MH ratio)
             if (runif(1) < min(1, ratio_MH))
             {
                A[j, k]      = A_new
@@ -679,19 +742,22 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
                beta[j, k]   = beta_new
                delta[j]     = delta_new
                gamma[j]     = gamma_new
-               logitPi_j    = logitPi_new
-               logLambda_j  = logLambda_new
+               logitPi_j    = logitPi_new     # update logit(pi) for the node j
+               logLambda_j  = logLambda_new   # update log(lambda) for the node j
                
+               # print deletion of the edge if verbose = TRUE
                if (verbose)
                   cat("An edge", k, "->", j, "is deleted \n")
             }
          }
       }
       
+      # save the updated logit(pi) and log(lambda) for the node j
       logitPi[ , j]   = logitPi_j
       logLambda[ , j] = logLambda_j
    }
    
+   # return the updated A, alpha, beta, delta, gamma,logit(pi), and log(lambda) 
    return(list(A         = A,
                alpha     = alpha,
                beta      = beta,
@@ -701,28 +767,33 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
                logLambda = logLambda))
 }
 
+
 # sample A based on proposal of reversing an edge through Metropolis step 
 # corresponding alpha, beta, delta, and gamma are jointly proposed with A 
 MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, phi_A, nu, verbose)
 {
+   # get indices of existing edges 
    ids_A1 = which(A == 1, arr.ind = TRUE)
    n_swap = nrow(ids_A1)
    
+   # if there exists no edge, don't do anything
    if (n_swap > 0)
    {
       for (s in 1 : n_swap)
       {
+         # index of an edge which will be reversed
          j1 = k0 = ids_A1[s, 1]
-         j0 = k1 = ids_A1[s, 2]
+         k1 = j0 = ids_A1[s, 2]
          
+         # propose reversal of the edge unless it makes a cycle
          A[j1, k1] = 0
          A[j0, k0] = 1
          graph    = graph_from_adjacency_matrix(A)
          A[j1, k1] = 1
          A[j0, k0] = 0
-         
          if (!is_dag(graph)) next
          
+         # get data, logit(pi) and log(lambda) for reversal of the edge
          x_j1 = x_k0 = x[ , j1]
          x_j0 = x_k1 = x[ , j0]
          logitPi_j1   = logitPi[ , j1]
@@ -730,6 +801,7 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
          logLambda_j1 = logLambda[ , j1]
          logLambda_j0 = logLambda[ , j0]
          
+         # current values of elements of alpha, beta, delta, and gamma corresponding to reversing
          alpha_old1 = alpha[j1, k1]
          alpha_old0 = alpha[j0, k0]
          beta_old1  = beta[j1, k1]
@@ -739,6 +811,7 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
          gamma_old1 = gamma[j1]
          gamma_old0 = gamma[j0]
          
+         # propose new values of elements of alpha, beta, delta, and gamma corresponding to reversing
          alpha_new1 = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
          alpha_new0 = rnorm(1, mean = alpha_old0, sd = sqrt(1 / phi_A[2]))
          beta_new1  = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
@@ -748,16 +821,15 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
          gamma_new1 = rnorm(1, mean = gamma_old1, sd = sqrt(1 / phi_A[5]))
          gamma_new0 = rnorm(1, mean = gamma_old0, sd = sqrt(1 / phi_A[5]))
          
+         # calculate MH ratio
          logitPi_new1   = logitPi_j1 + x_k1 * (alpha_new1 - alpha_old1) + (delta_new1 - delta_old1)
          logitPi_new0   = logitPi_j0 + x_k0 * (alpha_new0 - alpha_old0) + (delta_new0 - delta_old0)
          logLambda_new1 = logLambda_j1 + x_k1 * (beta_new1 - beta_old1) + (gamma_new1 - gamma_old1)
          logLambda_new0 = logLambda_j0 + x_k0 * (beta_new0 - beta_old0) + (gamma_new0 - gamma_old0)
-         
          llik_old1 = llik_ZIPBN_j(x_j1, logitPi_j1, logLambda_j1)
          llik_old0 = llik_ZIPBN_j(x_j0, logitPi_j0, logLambda_j0)
          llik_new1 = llik_ZIPBN_j(x_j1, logitPi_new1, logLambda_new1)
          llik_new0 = llik_ZIPBN_j(x_j0, logitPi_new0, logLambda_new0)
-         
          ratio_MH = dnorm(alpha_old0, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
             dnorm(beta_old0, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
             dnorm(alpha_old1, mean = alpha_new1, sd = sqrt(1 / phi_A[2]), log = TRUE) + 
@@ -777,6 +849,7 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
                                gamma_new1 * gamma_new1 - gamma_old1 * gamma_old1)
          ratio_MH = exp(ratio_MH)
          
+         # accept the proposed value with probability of min(1, MH ratio)
          if (runif(1) < min(1, ratio_MH))
          {
             A[j1, k1] = 0
@@ -790,16 +863,18 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
             gamma[j1]     = gamma_new1
             gamma[j0]     = gamma_new0
             logitPi[ , j1]   = logitPi_new1
-            logitPi[ , j0]   = logitPi_new0
+            logitPi[ , j0]   = logitPi_new0     # update logit(pi)'s, following reversal of the edge
             logLambda[ , j1] = logLambda_new1
-            logLambda[ , j0] = logLambda_new0
+            logLambda[ , j0] = logLambda_new0   # update log(lambda)'s, following reversal of the edge
             
+            # print reversal of the edge if verbose = TRUE
             if (verbose)
                cat("An edge", k1, "->", j1, "is reversed to", k0, "->", j0, " \n")
          } 
       } 
    }
-
+   
+   # return the updated A, alpha, beta, delta, gamma,logit(pi), and log(lambda)
    return(list(A         = A,
                alpha     = alpha,
                beta      = beta,
