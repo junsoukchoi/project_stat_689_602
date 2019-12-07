@@ -25,6 +25,52 @@ The model and its MCMC implementation are intermediate results of on-going work 
 Therefore, any manuscripts are not available yet, which explain the ZIPBN model and how to implement it. 
 Before showing how to use `ZIPBN` to make a network analysis on zero-inflated count data, we briefly introduce the ZIPBN model and its MCMC schema.
 
+
+&nbsp;
+
+# Zero-inflated Poisson Bayesian Networks
+
+The goal is to discover conditional dependence structures from zero-inflated count data using Bayesian networks. 
+A Bayesian network, also known as directed acyclic graph (DAG), is a pair $\{ V, A \}$, where $V = \{ 1, \ldots, p \}$ is a set of nodes representing random variables $\mathbf{X} = \{ X_1, \ldots, X_p \}$ and $A = (a_{jk})$ is a set of directed edges with $a_{jk} = 1$ meaning a directed edge $k \to j$ from the node $k$ to the node $j$.
+Beyesian networks allow no cycle, meaning one cannot return to the same node by following the directed edges.
+The acyclicity of Bayesian networks leads to a factorization of the joint distribution of $\mathbf{X}$ into a set of local distributions, $p(\mathbf{X} | A) = \prod_{j=1}^p p(X_j | X_{pa(j)})$.
+Here, $pa(j) = \{ k \in V | a_{jk} = 1 \}$ is a set of parents of node $j$ and $X_{pa(j)} = \{ X_k : k \in pa(j) \}$ is a subset of random variables indexed by $pa(j)$. 
+
+To deal with excessive zeros in zero-inflated count data, we model each local distribution in the factorization to be a zero-inflated Poisson model as following:
+$$
+Pr(X_j = x | \mathbf{X}_{pa(j)}) = 
+\begin{cases}
+\pi_j + (1 - \pi_j) Poi(0 | \mu_j) & \quad \text{if} \quad x = 0 \\
+(1 - \pi_j) Poi(x | \mu_j) & \quad \text{if} \quad x > 0.
+\end{cases}
+$$
+where $\pi_j = \text{logit}^{-1} (\sum_{k=1}^p \alpha_{jk} X_k + \delta_j)$ and $\mu_j = \text{exp} (\sum_{k = 1}^p \beta_{jk} X_k + \gamma_j)$ with $\alpha_{jk} = \beta_{jk} = 0$ if $k \notin pa(j)$.
+We denote the proposed ZIPBN model by $ZIPBN(\mathbf{\alpha}, \mathbf{\beta}, \delta, \gamma)$, where parameters are $\mathbf{\alpha} = (\alpha_{jk})$, $\mathbf{\beta} = (\beta_{jk})$, $\delta = (\delta_{j})$, and $\gamma = (\gamma_{j})$ with $\alpha_{jk} = \beta_{jk} = 0$ if $k \notin pa(j)$.   
+
+We adopt a Bayesian inference strategy to make inference on the ZIPBN models. 
+Inference on parameters $\mathbf{\alpha}$ and $\mathbf{\beta}$ which allows sparsity naturally leads to the selection of the effective edges.
+A spike-and-slab prior is imposed on each element of $\mathbf{\alpha}$ and $\mathbf{\beta}$ as following:
+\begin{align*}
+\alpha_{jk} | a_{jk}, \tau_\alpha & \sim a_{jk} N\left(0, \tau_\alpha^{-1}\right) + (1 - a_{jk}) N\left(0, (\nu \tau_\alpha)^{-1}\right), \\
+\beta_{jk} | a_{jk}, \tau_\beta & \sim a_{jk} N\left(0, \tau_\beta^{-1}\right) + (1 - a_{jk}) N\left(0, (\nu\tau_\beta)^{-1}\right),
+\end{align*}
+where $\nu$ is sufficiently large.
+Notice that $a_{jk}$ represents whether an edge $k \to j$ is selected based on the data.
+Furthermore, we assume that $\delta_j$ and $\gamma_j$ follow Normal prior distributions with mean $0$ and  precisions $\tau_\delta$ and $\tau_\gamma$ respectively.
+For the graph parameter $a_{jk}$, we use a Bernoulli prior with success probability $\rho$.
+The hierarchical formulation of our model is completed by assigning a Gamma prior to each of $\tau$'s and a Beta prior to $\rho$. 
+
+For posterior inference, we sample parameters from the posterior distributions using an MCMC algorithm.
+The MCMC algorithm updates each parameter by Gibbs sampler at each iteration. 
+When the full conditional distribution is not available in closed form, we update it through a Metropolis step.
+The most difficult part of the MCMC implementation is to sample $a_{jk}$'s, due to their ugly posterior probability space.
+To overcome it, we sample $a_{jk}$ jointly with $\alpha_{jk}$, $\beta_{jk}$, $\delta_j$, and $\gamma_j$.
+Additionally, one of two proposal strategies is chosen with probability of $0.5$.
+The first one is that if there exist (or doesn't exist) an edge $k \to j$, a Metropolis sampler proposes addition of the edge (or deletion of the edge).
+The second strategy is to propose reversing the edge for a Metropolis step.
+This MCMC algorithm is implemented as `ZIPBN`.
+
+
 ```{r setup}
 library(ZIPBN)
 ```
