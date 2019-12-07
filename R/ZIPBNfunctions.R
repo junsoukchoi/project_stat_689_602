@@ -330,9 +330,9 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 2
       # strategy 1: Metropolis sampler proposing addition or deletion of edges 
       # strategy 2: Metropolis sampler proposing reversal of edges   
       if (runif(1) < 0.5)
-         samp_A = MH_A_each(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)
+         samp_A = MH_A_each(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu, verbose)
       else
-         samp_A = MH_A_rev(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, phi_A, nu)
+         samp_A = MH_A_rev(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, phi_A, nu, verbose)
       A         = samp_A$A
       alpha     = samp_A$alpha
       beta      = samp_A$beta
@@ -584,7 +584,7 @@ MH_gamma = function(gamma, tau, x, logitPi, logLambda, phi_gamma, nu)
 
 # sample each element of A through Metropolis step (propose addition or deletion of an edge)
 # corresponding alpha, beta, delta, and gamma are jointly proposed with A 
-MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu)
+MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLambda, phi_A, nu, verbose)
 {
    p = ncol(x)
    
@@ -635,7 +635,6 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
             
             if (runif(1) < min(1, ratio_MH))
             {
-               cat("An edge", k, "->", j, "is added \n")
                A[j, k]      = A_new
                alpha[j, k]  = alpha_new
                beta[j, k]   = beta_new
@@ -643,6 +642,9 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
                gamma[j]     = gamma_new
                logitPi_j    = logitPi_new
                logLambda_j  = logLambda_new
+               
+               if (verbose)
+                  cat("An edge", k, "->", j, "is added \n")
             }
          } 
          else
@@ -672,7 +674,6 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
             
             if (runif(1) < min(1, ratio_MH))
             {
-               cat("An edge", k, "->", j, "is deleted \n")
                A[j, k]      = A_new
                alpha[j, k]  = alpha_new
                beta[j, k]   = beta_new
@@ -680,6 +681,9 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
                gamma[j]     = gamma_new
                logitPi_j    = logitPi_new
                logLambda_j  = logLambda_new
+               
+               if (verbose)
+                  cat("An edge", k, "->", j, "is deleted \n")
             }
          }
       }
@@ -699,7 +703,7 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
 
 # sample A based on proposal of reversing an edge through Metropolis step 
 # corresponding alpha, beta, delta, and gamma are jointly proposed with A 
-MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, phi_A, nu)
+MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, phi_A, nu, verbose)
 {
    ids_A1 = which(A == 1, arr.ind = TRUE)
    n_swap = nrow(ids_A1)
@@ -775,7 +779,6 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
          
          if (runif(1) < min(1, ratio_MH))
          {
-            cat("An edge", k1, "->", j1, "is reversed to", k0, "->", j0, " \n")
             A[j1, k1] = 0
             A[j0, k0] = 1
             alpha[j1, k1] = alpha_new1
@@ -790,6 +793,9 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
             logitPi[ , j0]   = logitPi_new0
             logLambda[ , j1] = logLambda_new1
             logLambda[ , j0] = logLambda_new0
+            
+            if (verbose)
+               cat("An edge", k1, "->", j1, "is reversed to", k0, "->", j0, " \n")
          } 
       } 
    }
