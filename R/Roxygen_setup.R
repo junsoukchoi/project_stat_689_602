@@ -1,4 +1,4 @@
 #' @useDynLib ZIPBN
-#' @import stats igraph 
+#' @import igraph
 #' @importFrom Rcpp evalCpp
 NULL

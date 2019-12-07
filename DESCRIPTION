@@ -9,7 +9,7 @@ Description: Markov chain Monte Carlo (MCMC) implementation to fit zero-inflated
 License: GPL (>=2)
 Encoding: UTF-8
 LazyData: true
-Imports: Rcpp (>= 1.0.2), stats, igraph
+Imports: Rcpp (>= 1.0.2), igraph
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.1.1
 Suggests: 
