@@ -1,0 +1,27 @@
+---
+title: "ZIPBN: Zero-inflated Poisson Bayesian Networks"
+author: "Junsouk Choi"
+date: "Dec 7, 2019"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ZIPBN}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+
+```{r setup}
+library(ZIPBN)
+```
+
+
+
+

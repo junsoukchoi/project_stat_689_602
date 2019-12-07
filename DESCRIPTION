@@ -12,3 +12,7 @@ LazyData: true
 Imports: Rcpp (>= 1.0.2), stats, igraph
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 6.1.1
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
