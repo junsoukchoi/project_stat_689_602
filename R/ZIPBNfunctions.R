@@ -1,16 +1,117 @@
 #' Implementation of MCMC sampler for ZIPBN models
 #'
-#' @param x a matrix containing data
-#' @param starting a list of parameters' starting values for MCMC
-#' @param tuning a list of precision values for Metropolis sampler Normal proposal distribution
-#' @param priors a list of hyperparameter values for priors
-#' @param n_sample the number of MCMC iterations
+#' @param x a matrix containing data.
+#' @param starting a list with each tag corresponding to a parameter name. 
+#' Valid tags are 'alpha', 'beta', 'delta', 'gamma', 'A', 'tau', and 'rho'. 
+#' The value portion of each tag is the parameters' starting values for MCMC.
+#' @param tuning a list with each tag corresponding to a parameter name.
+#' Valid tags are 'phi_alpha', 'phi_beta', 'phi_delta', 'phi_gamma', and 'phi_A'.
+#' The value portion of each tag defines the precision of Normal proposal distribution for the Metropolis sampler. 
+#' @param priors a list with each tag corresponding to a parameter name. 
+#' Valid tags are 'nu', 'tau_alpha', 'tau_beta', 'tau_delta', 'tau_gamma', and 'rho'.
+#' The value portion of each tag defines hyperparameters of the priors specified for ZIPBN models.
+#' @param n_sample the number of MCMC iterations.
+#' @param n_burnin the number of burn-in samples.
+#' @param verbose if TRUE, progress of the sampler is printed to the screen. 
+#' Otherwise, nothing is printed to the screen.
+#' @param n_report the interval to report Metropolis sampler acceptance rates and MCMC progress.
 #'
-#' @return MCMC samples from posterior distributions of ZIPBN models
+#' @return An object of class ZIPBN, which is a list with the tags 'samples' and 'acceptance'. 
+#' The value portion of the tag 'samples' gives MCMC samples from posterior distributions for the defined parameters of ZIPBN models.
+#' The value portion of the tag 'acceptance' shows the Metropolis sampling acceptance percents for alpha, beta, delta, and gamma. 
+#' 
 #' @export
 #'
 #' @examples
-mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3000, verbose = TRUE, n_report = 500)
+#'library(ZIPBN)
+#'
+#'
+#'## Example data
+#'set.seed(7)
+#'
+#'# generate a simple graph: X1 -> X2 -> X3
+#'p = 3
+#'A = matrix(0, p, p)
+#'A[3, 2] = A[2, 1] = 1
+#'
+#'# parameters of the ZIPBN model, given graph A
+#'alpha = matrix(0, p, p)
+#'alpha[A == 1] = 0.3
+#'beta  = matrix(0, p, p)
+#'beta[A == 1] = 0.2
+#'delta = rep(1, p)
+#'gamma = rep(1.5, p)
+#'
+#'# generate data from the ZIPBN model
+#'n = 200
+#'x = matrix(0, n, p)
+#'for (j in 1 : p)
+#'{
+#'   # calculate pi_j
+#'   pi = exp(x %*% alpha[j, ] + delta[j])
+#'   pi = pi / (1 + pi)
+#'   # calculate mu_j
+#'   mu = exp(x %*% beta[j, ] + gamma[j])
+#'   # generate data for X_j
+#'   x[ , j] = rpois(n, mu) * (1 - rbinom(n, 1, pi))
+#'}
+#'
+#'
+#'## fit ZIPBN models
+#'# create starting value list
+#'m = colMeans(x)
+#'v = apply(x, 2, var)
+#'starting = list(alpha = matrix(0, p, p),
+#'                beta  = matrix(0, p, p),
+#'                delta = log((v - m) / (m * m)),
+#'                gamma = log((v - m + m * m) / m),
+#'                A     = matrix(0, p, p),
+#'                tau   = c(10, 10, 1, 1),
+#'                rho   = 0.1)
+#'
+#'# create tuning value list
+#'tuning = list(phi_alpha = c(1e+8, 20),
+#'              phi_beta  = c(1e+8, 100),
+#'              phi_delta = 5,
+#'              phi_gamma = 50,
+#'              phi_A     = c(1e+10, 10, 10, 1, 10))
+#'
+#'# create priors list
+#'priors = list(nu        = 10000^2,
+#'              tau_alpha = c(0.01, 0.01),
+#'              tau_beta  = c(0.01, 0.01),
+#'              tau_delta = c(0.01, 0.01),
+#'              tau_gamma = c(0.01, 0.01),
+#'              rho       = c(0.5, 0.5))
+#'
+#'# run mcmc_ZIPBN function
+#'n_sample = 2000
+#'n_burnin = 1000
+#'out = mcmc_ZIPBN(x, starting, tuning, priors, n_sample, n_burnin)
+#'
+#'
+#'## posterior inference via ZIPBN models
+#'# report Metropolis sampling acceptance percents
+#'out$acceptance
+#'
+#'# recover garph structure
+#'cutoff = 0.5
+#'A_est  = 1 * (apply(out$samples$A, c(1, 2), mean) > cutoff)
+#'
+#'# calculate the posterior mean of each parameter, given the recovered graph 
+#'subset = apply(out$samples$A == array(A_est, dim = c(p, p, n_sample - n_burnin)), 3, all)
+#'alpha_est = apply(out$samples$alpha[ , , subset], c(1, 2), mean)
+#'beta_est  = apply(out$samples$beta[ , , subset], c(1, 2), mean)
+#'delta_est = rowMeans(out$samples$delta[ , subset])
+#'gamma_est = rowMeans(out$samples$gamma[ , subset])
+#'
+#'# report the posterior mean of each parameter with the recoverd graph
+#'A_est
+#'round(alpha_est, digits = 2)
+#'round(beta_est, digits = 2)
+#'round(delta_est, digits = 2)
+#'round(gamma_est, digits = 2)
+mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 2500, verbose = TRUE, n_report = 500)
 {
    # check compatibility of x
    if (missing(x))
@@ -196,7 +297,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    logLambda = tcrossprod(x, beta) + matrix(gamma, n, p, byrow = TRUE)
    
    
-   ###--------------------------- Metropolis-within-Gibbs sampler for ZIPBN models -------------------------###
+   ## Metropolis-within-Gibbs sampler for ZIPBN models
    # sample from the ZIPBN posterior through MCMC iterations
    for (t in 1 : n_sample)
    {
@@ -279,17 +380,19 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
          }
       }
    }
+
    
-   # return a list of 1. MCMC samples (after burn-in period) for each parameter 
-   #                  2. Metropolis sampler acceptance rates for alpha, beta, delta, and gamma
+   # return a list of 
+   # 1. MCMC samples (after burn-in period) for each parameter 
+   # 2. Metropolis sampler acceptance rates for alpha, beta, delta, and gamma
    results = list()
-   results$alpha = alpha_MCMC[ , , (n_burnin + 1) : n_sample]
-   results$beta  = beta_MCMC[ , , (n_burnin + 1) : n_sample]
-   results$delta = delta_MCMC[ , (n_burnin + 1) : n_sample]
-   results$gamma = gamma_MCMC[ , (n_burnin + 1) : n_sample]
-   results$A     = A_MCMC[ , , (n_burnin + 1) : n_sample]
-   results$tau   = tau_MCMC[ , (n_burnin + 1) : n_sample]
-   results$rho   = rho_MCMC[(n_burnin + 1) : n_sample]
+   results$samples = list(alpha = alpha_MCMC[ , , (n_burnin + 1) : n_sample],
+                          beta  = beta_MCMC[ , , (n_burnin + 1) : n_sample],
+                          delta = delta_MCMC[ , (n_burnin + 1) : n_sample],
+                          gamma = gamma_MCMC[ , (n_burnin + 1) : n_sample],
+                          A     = A_MCMC[ , , (n_burnin + 1) : n_sample],
+                          tau   = tau_MCMC[ , (n_burnin + 1) : n_sample],
+                          rho   = rho_MCMC[(n_burnin + 1) : n_sample])
    results$acceptance = list(alpha = 100 * apply(accept_alpha, c(1, 2), mean),
                              beta  = 100 * apply(accept_beta, c(1, 2), mean),
                              gamma = 100 * apply(accept_delta, 1, mean),
