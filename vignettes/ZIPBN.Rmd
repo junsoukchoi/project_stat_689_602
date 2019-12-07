@@ -16,7 +16,14 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Introduction
 
+In this vignette, we will give a tutorial on using `ZIPBN`. 
+`ZIPBN` fits zero-inflated Poisson Bayesian networks (ZIPBN) for zero-inflated count data,  such as scRNA-seq data, using Markov chain Monte Carlo (MCMC).
+The ZIPBN models deal with conditional dependencies of variables of zero-inflated count data. 
+The model and its MCMC implementation are intermediate results of on-going work on scalable Bayesian networks for the scRNA-seq data.
+Therefore, any manuscripts are not available yet, which explain the ZIPBN model and how to implement it. 
+Before showing how to use `ZIPBN` to make a network analysis on zero-inflated count data, we briefly introduce the ZIPBN model and its MCMC schema.
 
 ```{r setup}
 library(ZIPBN)
