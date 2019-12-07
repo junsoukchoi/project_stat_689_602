@@ -428,32 +428,32 @@ MH_alpha = function(alpha, A, tau, x, logitPi, logLambda, phi_alpha, nu)
       
       for (k in 1 : p)
       {
-         if (j != k)
+         if (j == k) next
+         
+         alpha_old = alpha[j, k]
+         
+         if (A[j, k] == 0)
          {
-            alpha_old = alpha[j, k]
-            
-            if (A[j, k] == 0)
-            {
-               alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[1]))
-               logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
-               llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
-               llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
-               ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * nu * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
-            } else
-            {
-               alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[2]))
-               logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
-               llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
-               llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
-               ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
-            }
-            
-            if (runif(1) < min(1, ratio_MH))
-            {
-               alpha[j, k]  = alpha_new
-               logitPi_j    = logitPi_new
-               accept[j, k] = 1
-            }
+            alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[1]))
+            logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
+            llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+            llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
+            ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * nu * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
+         } 
+         else
+         {
+            alpha_new   = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_alpha[2]))
+            logitPi_new = logitPi_j + x[ , k] * (alpha_new - alpha_old)
+            llik_old    = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+            llik_new    = llik_ZIPBN_j(x_j, logitPi_new, logLambda_j)
+            ratio_MH    = exp(sum(llik_new - llik_old) - 0.5 * tau[1] * (alpha_new * alpha_new - alpha_old * alpha_old))
+         }
+         
+         if (runif(1) < min(1, ratio_MH))
+         {
+            alpha[j, k]  = alpha_new
+            logitPi_j    = logitPi_new
+            accept[j, k] = 1
          }
       }
       
@@ -479,32 +479,32 @@ MH_beta = function(beta, A, tau, x, logitPi, logLambda, phi_beta, nu)
       
       for (k in 1 : p)
       {
-         if (j != k)
+         if (j == k) next
+         
+         beta_old = beta[j, k]
+         
+         if(A[j, k] == 0)
          {
-            beta_old = beta[j, k]
-            
-            if(A[j, k] == 0)
-            {
-               beta_new      = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_beta[1]))
-               logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old)
-               llik_old      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
-               llik_new      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_new)
-               ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * nu * tau[2] * (beta_new * beta_new - beta_old * beta_old))
-            } else
-            {
-               beta_new      = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_beta[2]))
-               logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old)
-               llik_old      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
-               llik_new      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_new)
-               ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * tau[2] * (beta_new * beta_new - beta_old * beta_old)) 
-            }
-            
-            if (runif(1) < min(1, ratio_MH))
-            {
-               beta[j, k]   = beta_new
-               logLambda_j  = logLambda_new
-               accept[j, k] = 1
-            }
+            beta_new      = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_beta[1]))
+            logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old)
+            llik_old      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+            llik_new      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_new)
+            ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * nu * tau[2] * (beta_new * beta_new - beta_old * beta_old))
+         } 
+         else
+         {
+            beta_new      = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_beta[2]))
+            logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old)
+            llik_old      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+            llik_new      = llik_ZIPBN_j(x_j, logitPi_j, logLambda_new)
+            ratio_MH      = exp(sum(llik_new - llik_old) - 0.5 * tau[2] * (beta_new * beta_new - beta_old * beta_old)) 
+         }
+         
+         if (runif(1) < min(1, ratio_MH))
+         {
+            beta[j, k]   = beta_new
+            logLambda_j  = logLambda_new
+            accept[j, k] = 1
          }
       }
       
@@ -596,91 +596,90 @@ MH_A_each = function(A, alpha, beta, delta, gamma, tau, rho, x, logitPi, logLamb
       
       for (k in 1 : p)
       {
-         if (j != k)
+         if (j == k) next
+         
+         alpha_old = alpha[j, k]
+         beta_old  = beta[j, k]
+         delta_old = delta[j]
+         gamma_old = gamma[j]
+         
+         if (A[j, k] == 0)
          {
-            alpha_old = alpha[j, k]
-            beta_old  = beta[j, k]
-            delta_old = delta[j]
-            gamma_old = gamma[j]
+            A[j, k] = A_new = 1
+            graph   = graph_from_adjacency_matrix(A)
+            A[j, k] = 0
             
-            if (A[j, k] == 0)
+            if (!is_dag(graph)) next
+            
+            alpha_new = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_A[2]))
+            beta_new  = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_A[3]))
+            delta_new = rnorm(1, mean = delta_old, sd = sqrt(1 / phi_A[4]))
+            gamma_new = rnorm(1, mean = gamma_old, sd = sqrt(1 / phi_A[5]))
+            
+            logitPi_new   = logitPi_j + x[ , k] * (alpha_new - alpha_old) + (delta_new - delta_old)
+            logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old) + (gamma_new - gamma_old)
+            llik_old  = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+            llik_new  = llik_ZIPBN_j(x_j, logitPi_new, logLambda_new)
+            
+            ratio_MH = dnorm(alpha_old, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
+               dnorm(beta_old, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) - 
+               dnorm(alpha_new, mean = alpha_old, sd = sqrt(1 / phi_A[2]), log = TRUE) - 
+               dnorm(beta_new, mean = beta_old, sd = sqrt(1 / phi_A[3]), log = TRUE)
+            ratio_MH = ratio_MH + sum(llik_new - llik_old) - log(nu) - 
+               0.5 * tau[1] * (alpha_new * alpha_new - nu * alpha_old * alpha_old) -
+               0.5 * tau[2] * (beta_new * beta_new - nu * beta_old * beta_old) - 
+               0.5 * tau[3] * (delta_new * delta_new - delta_old * delta_old) - 
+               0.5 * tau[4] * (gamma_new * gamma_new - gamma_old * gamma_old) +
+               log(rho) - log(1 - rho)
+            ratio_MH = exp(ratio_MH)
+            
+            if (runif(1) < min(1, ratio_MH))
             {
-               A[j, k] = A_new = 1
-               graph   = graph_from_adjacency_matrix(A)
-               A[j, k] = 0
-               
-               if (is_dag(graph))
-               {
-                  alpha_new = rnorm(1, mean = alpha_old, sd = sqrt(1 / phi_A[2]))
-                  beta_new  = rnorm(1, mean = beta_old, sd = sqrt(1 / phi_A[3]))
-                  delta_new = rnorm(1, mean = delta_old, sd = sqrt(1 / phi_A[4]))
-                  gamma_new = rnorm(1, mean = gamma_old, sd = sqrt(1 / phi_A[5]))
-                  
-                  logitPi_new   = logitPi_j + x[ , k] * (alpha_new - alpha_old) + (delta_new - delta_old)
-                  logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old) + (gamma_new - gamma_old)
-                  llik_old  = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
-                  llik_new  = llik_ZIPBN_j(x_j, logitPi_new, logLambda_new)
-                  
-                  ratio_MH = dnorm(alpha_old, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
-                     dnorm(beta_old, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) - 
-                     dnorm(alpha_new, mean = alpha_old, sd = sqrt(1 / phi_A[2]), log = TRUE) - 
-                     dnorm(beta_new, mean = beta_old, sd = sqrt(1 / phi_A[3]), log = TRUE)
-                  ratio_MH = ratio_MH + sum(llik_new - llik_old) - log(nu) - 
-                     0.5 * tau[1] * (alpha_new * alpha_new - nu * alpha_old * alpha_old) -
-                     0.5 * tau[2] * (beta_new * beta_new - nu * beta_old * beta_old) - 
-                     0.5 * tau[3] * (delta_new * delta_new - delta_old * delta_old) - 
-                     0.5 * tau[4] * (gamma_new * gamma_new - gamma_old * gamma_old) +
-                     log(rho) - log(1 - rho)
-                  ratio_MH = exp(ratio_MH)
-                  
-                  if (runif(1) < min(1, ratio_MH))
-                  {
-                     cat("An edge", k, "->", j, "is added \n")
-                     A[j, k]      = A_new
-                     alpha[j, k]  = alpha_new
-                     beta[j, k]   = beta_new
-                     delta[j]     = delta_new
-                     gamma[j]     = gamma_new
-                     logitPi_j    = logitPi_new
-                     logLambda_j  = logLambda_new
-                  }
-               } 
-            } else
+               cat("An edge", k, "->", j, "is added \n")
+               A[j, k]      = A_new
+               alpha[j, k]  = alpha_new
+               beta[j, k]   = beta_new
+               delta[j]     = delta_new
+               gamma[j]     = gamma_new
+               logitPi_j    = logitPi_new
+               logLambda_j  = logLambda_new
+            }
+         } 
+         else
+         {
+            A_new = 0
+            alpha_new = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
+            beta_new  = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
+            delta_new = rnorm(1, mean = delta_old, sd = sqrt(1 / phi_A[4]))
+            gamma_new = rnorm(1, mean = gamma_old, sd = sqrt(1 / phi_A[5]))
+            
+            logitPi_new   = logitPi_j + x[ , k] * (alpha_new - alpha_old) + (delta_new - delta_old)
+            logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old) + (gamma_new - gamma_old)
+            llik_old  = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
+            llik_new  = llik_ZIPBN_j(x_j, logitPi_new, logLambda_new)
+            
+            ratio_MH = dnorm(alpha_old, mean = alpha_new, sd = sqrt(1 / phi_A[2]), log = TRUE) + 
+               dnorm(beta_old, mean = beta_new, sd = sqrt(1 / phi_A[3]), log = TRUE) - 
+               dnorm(alpha_new, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) - 
+               dnorm(beta_new, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE)
+            ratio_MH = ratio_MH + sum(llik_new - llik_old) + log(nu) - 
+               0.5 * tau[1] * (nu * alpha_new * alpha_new - alpha_old * alpha_old) -
+               0.5 * tau[2] * (nu * beta_new * beta_new - beta_old * beta_old) - 
+               0.5 * tau[3] * (delta_new * delta_new - delta_old * delta_old) - 
+               0.5 * tau[4] * (gamma_new * gamma_new - gamma_old * gamma_old) +
+               log(1 - rho) - log(rho)
+            ratio_MH = exp(ratio_MH)
+            
+            if (runif(1) < min(1, ratio_MH))
             {
-               A_new = 0
-               alpha_new = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
-               beta_new  = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
-               delta_new = rnorm(1, mean = delta_old, sd = sqrt(1 / phi_A[4]))
-               gamma_new = rnorm(1, mean = gamma_old, sd = sqrt(1 / phi_A[5]))
-               
-               logitPi_new   = logitPi_j + x[ , k] * (alpha_new - alpha_old) + (delta_new - delta_old)
-               logLambda_new = logLambda_j + x[ , k] * (beta_new - beta_old) + (gamma_new - gamma_old)
-               llik_old  = llik_ZIPBN_j(x_j, logitPi_j, logLambda_j)
-               llik_new  = llik_ZIPBN_j(x_j, logitPi_new, logLambda_new)
-               
-               ratio_MH = dnorm(alpha_old, mean = alpha_new, sd = sqrt(1 / phi_A[2]), log = TRUE) + 
-                  dnorm(beta_old, mean = beta_new, sd = sqrt(1 / phi_A[3]), log = TRUE) - 
-                  dnorm(alpha_new, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) - 
-                  dnorm(beta_new, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE)
-               ratio_MH = ratio_MH + sum(llik_new - llik_old) + log(nu) - 
-                  0.5 * tau[1] * (nu * alpha_new * alpha_new - alpha_old * alpha_old) -
-                  0.5 * tau[2] * (nu * beta_new * beta_new - beta_old * beta_old) - 
-                  0.5 * tau[3] * (delta_new * delta_new - delta_old * delta_old) - 
-                  0.5 * tau[4] * (gamma_new * gamma_new - gamma_old * gamma_old) +
-                  log(1 - rho) - log(rho)
-               ratio_MH = exp(ratio_MH)
-               
-               if (runif(1) < min(1, ratio_MH))
-               {
-                  cat("An edge", k, "->", j, "is deleted \n")
-                  A[j, k]      = A_new
-                  alpha[j, k]  = alpha_new
-                  beta[j, k]   = beta_new
-                  delta[j]     = delta_new
-                  gamma[j]     = gamma_new
-                  logitPi_j    = logitPi_new
-                  logLambda_j  = logLambda_new
-               }
+               cat("An edge", k, "->", j, "is deleted \n")
+               A[j, k]      = A_new
+               alpha[j, k]  = alpha_new
+               beta[j, k]   = beta_new
+               delta[j]     = delta_new
+               gamma[j]     = gamma_new
+               logitPi_j    = logitPi_new
+               logLambda_j  = logLambda_new
             }
          }
       }
@@ -707,7 +706,6 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
    
    if (n_swap > 0)
    {
-      
       for (s in 1 : n_swap)
       {
          j1 = k0 = ids_A1[s, 1]
@@ -719,80 +717,79 @@ MH_A_rev = function(A, alpha, beta, delta, gamma, tau, x, logitPi, logLambda, ph
          A[j1, k1] = 1
          A[j0, k0] = 0
          
-         if (is_dag(graph))
+         if (!is_dag(graph)) next
+         
+         x_j1 = x_k0 = x[ , j1]
+         x_j0 = x_k1 = x[ , j0]
+         logitPi_j1   = logitPi[ , j1]
+         logitPi_j0   = logitPi[ , j0]
+         logLambda_j1 = logLambda[ , j1]
+         logLambda_j0 = logLambda[ , j0]
+         
+         alpha_old1 = alpha[j1, k1]
+         alpha_old0 = alpha[j0, k0]
+         beta_old1  = beta[j1, k1]
+         beta_old0  = beta[j0, k0]
+         delta_old1 = delta[j1]
+         delta_old0 = delta[j0]
+         gamma_old1 = gamma[j1]
+         gamma_old0 = gamma[j0]
+         
+         alpha_new1 = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
+         alpha_new0 = rnorm(1, mean = alpha_old0, sd = sqrt(1 / phi_A[2]))
+         beta_new1  = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
+         beta_new0  = rnorm(1, mean = beta_old0, sd = sqrt(1 / phi_A[3]))
+         delta_new1 = rnorm(1, mean = delta_old1, sd = sqrt(1 / phi_A[4]))
+         delta_new0 = rnorm(1, mean = delta_old0, sd = sqrt(1 / phi_A[4]))
+         gamma_new1 = rnorm(1, mean = gamma_old1, sd = sqrt(1 / phi_A[5]))
+         gamma_new0 = rnorm(1, mean = gamma_old0, sd = sqrt(1 / phi_A[5]))
+         
+         logitPi_new1   = logitPi_j1 + x_k1 * (alpha_new1 - alpha_old1) + (delta_new1 - delta_old1)
+         logitPi_new0   = logitPi_j0 + x_k0 * (alpha_new0 - alpha_old0) + (delta_new0 - delta_old0)
+         logLambda_new1 = logLambda_j1 + x_k1 * (beta_new1 - beta_old1) + (gamma_new1 - gamma_old1)
+         logLambda_new0 = logLambda_j0 + x_k0 * (beta_new0 - beta_old0) + (gamma_new0 - gamma_old0)
+         
+         llik_old1 = llik_ZIPBN_j(x_j1, logitPi_j1, logLambda_j1)
+         llik_old0 = llik_ZIPBN_j(x_j0, logitPi_j0, logLambda_j0)
+         llik_new1 = llik_ZIPBN_j(x_j1, logitPi_new1, logLambda_new1)
+         llik_new0 = llik_ZIPBN_j(x_j0, logitPi_new0, logLambda_new0)
+         
+         ratio_MH = dnorm(alpha_old0, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
+            dnorm(beta_old0, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
+            dnorm(alpha_old1, mean = alpha_new1, sd = sqrt(1 / phi_A[2]), log = TRUE) + 
+            dnorm(beta_old1, mean = beta_new1, sd = sqrt(1 / phi_A[3]), log = TRUE) - 
+            dnorm(alpha_new0, mean = alpha_old0, sd = sqrt(1 / phi_A[2]), log = TRUE) - 
+            dnorm(beta_new0, mean = beta_old0, sd = sqrt(1 / phi_A[3]), log = TRUE) - 
+            dnorm(alpha_new1, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) - 
+            dnorm(beta_new1, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE)
+         ratio_MH = ratio_MH + sum(llik_new0 - llik_old0) + sum(llik_new1 - llik_old1) - 
+            0.5 * (tau[1] * (alpha_new0 * alpha_new0 - alpha_old1 * alpha_old1) + 
+                      tau[2] * (beta_new0 * beta_new0 - beta_old1 * beta_old1)) - 
+            0.5 * nu * (tau[1] * (alpha_new1 * alpha_new1 - alpha_old0 * alpha_old0) + 
+                           tau[2] * (beta_new1 * beta_new1 - beta_old0 * beta_old0)) - 
+            0.5 * tau[3] * (delta_new0 * delta_new0 - delta_old0 * delta_old0 + 
+                               delta_new1 * delta_new1 - delta_old1 * delta_old1) - 
+            0.5 * tau[4] * (gamma_new0 * gamma_new0 - gamma_old0 * gamma_old0 +
+                               gamma_new1 * gamma_new1 - gamma_old1 * gamma_old1)
+         ratio_MH = exp(ratio_MH)
+         
+         if (runif(1) < min(1, ratio_MH))
          {
-            x_j1 = x_k0 = x[ , j1]
-            x_j0 = x_k1 = x[ , j0]
-            logitPi_j1   = logitPi[ , j1]
-            logitPi_j0   = logitPi[ , j0]
-            logLambda_j1 = logLambda[ , j1]
-            logLambda_j0 = logLambda[ , j0]
-            
-            alpha_old1 = alpha[j1, k1]
-            alpha_old0 = alpha[j0, k0]
-            beta_old1  = beta[j1, k1]
-            beta_old0  = beta[j0, k0]
-            delta_old1 = delta[j1]
-            delta_old0 = delta[j0]
-            gamma_old1 = gamma[j1]
-            gamma_old0 = gamma[j0]
-            
-            alpha_new1 = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
-            alpha_new0 = rnorm(1, mean = alpha_old0, sd = sqrt(1 / phi_A[2]))
-            beta_new1  = rnorm(1, mean = 0, sd = sqrt(1 / phi_A[1]))
-            beta_new0  = rnorm(1, mean = beta_old0, sd = sqrt(1 / phi_A[3]))
-            delta_new1 = rnorm(1, mean = delta_old1, sd = sqrt(1 / phi_A[4]))
-            delta_new0 = rnorm(1, mean = delta_old0, sd = sqrt(1 / phi_A[4]))
-            gamma_new1 = rnorm(1, mean = gamma_old1, sd = sqrt(1 / phi_A[5]))
-            gamma_new0 = rnorm(1, mean = gamma_old0, sd = sqrt(1 / phi_A[5]))
-            
-            logitPi_new1   = logitPi_j1 + x_k1 * (alpha_new1 - alpha_old1) + (delta_new1 - delta_old1)
-            logitPi_new0   = logitPi_j0 + x_k0 * (alpha_new0 - alpha_old0) + (delta_new0 - delta_old0)
-            logLambda_new1 = logLambda_j1 + x_k1 * (beta_new1 - beta_old1) + (gamma_new1 - gamma_old1)
-            logLambda_new0 = logLambda_j0 + x_k0 * (beta_new0 - beta_old0) + (gamma_new0 - gamma_old0)
-            
-            llik_old1 = llik_ZIPBN_j(x_j1, logitPi_j1, logLambda_j1)
-            llik_old0 = llik_ZIPBN_j(x_j0, logitPi_j0, logLambda_j0)
-            llik_new1 = llik_ZIPBN_j(x_j1, logitPi_new1, logLambda_new1)
-            llik_new0 = llik_ZIPBN_j(x_j0, logitPi_new0, logLambda_new0)
-            
-            ratio_MH = dnorm(alpha_old0, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
-               dnorm(beta_old0, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) + 
-               dnorm(alpha_old1, mean = alpha_new1, sd = sqrt(1 / phi_A[2]), log = TRUE) + 
-               dnorm(beta_old1, mean = beta_new1, sd = sqrt(1 / phi_A[3]), log = TRUE) - 
-               dnorm(alpha_new0, mean = alpha_old0, sd = sqrt(1 / phi_A[2]), log = TRUE) - 
-               dnorm(beta_new0, mean = beta_old0, sd = sqrt(1 / phi_A[3]), log = TRUE) - 
-               dnorm(alpha_new1, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE) - 
-               dnorm(beta_new1, mean = 0, sd = sqrt(1 / phi_A[1]), log = TRUE)
-            ratio_MH = ratio_MH + sum(llik_new0 - llik_old0) + sum(llik_new1 - llik_old1) - 
-               0.5 * (tau[1] * (alpha_new0 * alpha_new0 - alpha_old1 * alpha_old1) + 
-                         tau[2] * (beta_new0 * beta_new0 - beta_old1 * beta_old1)) - 
-               0.5 * nu * (tau[1] * (alpha_new1 * alpha_new1 - alpha_old0 * alpha_old0) + 
-                              tau[2] * (beta_new1 * beta_new1 - beta_old0 * beta_old0)) - 
-               0.5 * tau[3] * (delta_new0 * delta_new0 - delta_old0 * delta_old0 + 
-                                  delta_new1 * delta_new1 - delta_old1 * delta_old1) - 
-               0.5 * tau[4] * (gamma_new0 * gamma_new0 - gamma_old0 * gamma_old0 +
-                                  gamma_new1 * gamma_new1 - gamma_old1 * gamma_old1)
-            ratio_MH = exp(ratio_MH)
-            
-            if (runif(1) < min(1, ratio_MH))
-            {
-               cat("An edge", k1, "->", j1, "is reversed to", k0, "->", j0, " \n")
-               A[j1, k1] = 0
-               A[j0, k0] = 1
-               alpha[j1, k1] = alpha_new1
-               alpha[j0, k0] = alpha_new0
-               beta[j1, k1]  = beta_new1
-               beta[j0, k0]  = beta_new0
-               delta[j1]     = delta_new1
-               delta[j0]     = delta_new0
-               gamma[j1]     = gamma_new1
-               gamma[j0]     = gamma_new0
-               logitPi[ , j1]   = logitPi_new1
-               logitPi[ , j0]   = logitPi_new0
-               logLambda[ , j1] = logLambda_new1
-               logLambda[ , j0] = logLambda_new0
-            }
+            cat("An edge", k1, "->", j1, "is reversed to", k0, "->", j0, " \n")
+            A[j1, k1] = 0
+            A[j0, k0] = 1
+            alpha[j1, k1] = alpha_new1
+            alpha[j0, k0] = alpha_new0
+            beta[j1, k1]  = beta_new1
+            beta[j0, k0]  = beta_new0
+            delta[j1]     = delta_new1
+            delta[j0]     = delta_new0
+            gamma[j1]     = gamma_new1
+            gamma[j0]     = gamma_new0
+            logitPi[ , j1]   = logitPi_new1
+            logitPi[ , j0]   = logitPi_new0
+            logLambda[ , j1] = logLambda_new1
+            logLambda[ , j0] = logLambda_new0
          } 
       } 
    }
