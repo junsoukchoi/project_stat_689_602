@@ -298,16 +298,7 @@ mcmc_ZIPBN = function(x, starting, tuning, priors, n_sample = 5000, n_burnin = 3
    return(results)
 }
 
-#' Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
-#'
-#' @param x_j data for the j-th variable (node)
-#' @param logitPi logit(pi)
-#' @param logLambda log(lambda)
-#'
-#' @return log-likelihood of each observation for the j-th component of ZIPBN 
-#' @export
-#'
-#' @examples
+# Evaluate log-likelihood of each observation for the j-th component of ZIPBN model
 llik_ZIPBN_j = function(x_j, logitPi, logLambda)
 {
    # calculate pi and lambda
