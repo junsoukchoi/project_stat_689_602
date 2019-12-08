@@ -1,5 +1,5 @@
 ---
-title: "ZIPBN: Zero-inflated Poisson Bayesian Networks"
+title: "ZIPBN: Zero-inflated Poisson Bayesian Networks for Zero-inflated Count Data"
 author: "Junsouk Choi"
 date: "Dec 7, 2019"
 output: rmarkdown::html_vignette
@@ -32,6 +32,7 @@ Before showing how to use `ZIPBN` to make a network analysis on zero-inflated co
 
 The goal is to discover conditional dependence structures from zero-inflated count data using Bayesian networks. 
 A Bayesian network, also known as directed acyclic graph (DAG), is a pair $\{ V, A \}$, where $V = \{ 1, \ldots, p \}$ is a set of nodes representing random variables $\mathbf{X} = \{ X_1, \ldots, X_p \}$ and $A = (a_{jk})$ is a set of directed edges with $a_{jk} = 1$ meaning a directed edge $k \to j$ from the node $k$ to the node $j$.
+We often call $A$ as the adjacency matrix.
 Beyesian networks allow no cycle, meaning one cannot return to the same node by following the directed edges.
 The acyclicity of Bayesian networks leads to a factorization of the joint distribution of $\mathbf{X}$ into a set of local distributions, $p(\mathbf{X} | A) = \prod_{j=1}^p p(X_j | X_{pa(j)})$.
 Here, $pa(j) = \{ k \in V | a_{jk} = 1 \}$ is a set of parents of node $j$ and $X_{pa(j)} = \{ X_k : k \in pa(j) \}$ is a subset of random variables indexed by $pa(j)$. 
@@ -78,13 +79,13 @@ We generate example data using ZIPBN models, rather than loading real data.
 It will be helpful to understand what the ZIPB model is, since procedure of data generation gives a clear sketch of ZIPBN models. 
 First, we load `ZIPBN` package and randomly generate a graph. `igraph` package is also loaded to make use of its convenient functions for analyzing graph structures.
 
-```{r, message = FALSE}
+```{r, message = FALSE, eval = TRUE, echo = TRUE, cache = TRUE}
 # load ZIPBN package with igraph package
 library(ZIPBN)
 library(igraph)
 ```
 
-```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
+```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 5, fig.height = 4}
 # set random seed for reproducibility
 set.seed(20191207)
 
@@ -105,7 +106,7 @@ while (sum(A == 1) < n_edges)
 
 # show the generated DAG
 A
-plot.igraph(g, vertex.size = 25, vertex.color = "pink", main = "DAG A with 6 nodes and 5 edges")
+plot.igraph(g, vertex.size = 25, vertex.color = "pink", main = "DAG generated with 6 nodes and 6 edges")
 ```
 
 A DAG with `r p` nodes and `r p` edges is generated. 
@@ -118,7 +119,7 @@ We, therefore, need to transpose our adjacency matrix before converting it to an
 The adjacency matrix `A` we generate is printed and its graph is plotted using `plot.igraph` function of `igraph`.
 We then generate data from a ZIPBN model depending on the DAG we create. 
 
-```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
+```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 7, fig.height = 7}
 # set parameters of the ZIPBN model, given DAG A
 alpha = matrix(0, p, p)
 alpha[A == 1] = 0.2
@@ -167,7 +168,7 @@ In this section, we demonstrate how `ZIPBN` can be used to discover conditional 
 `ZIPBN` consists of a function `mcmc_ZIPBN` which implements the MCMC for ZIPBN models. 
 `mcmc_ZIPBN` needs three essential arguments `starting`, `tuning`, and `priors`.
 
-```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
+```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 7, fig.height = 7}
 # create starting value list
 m = colMeans(x)
 v = apply(x, 2, var)
@@ -192,7 +193,7 @@ Values between 1 and 10 are good enogh for Markov chains of $\tau$'s to start.
 The choice of starting values of tau does not affect much to the performance of our MCMC.
 The value of 0.1 is reasonable for the starting value of rho, due to sparsity assumption for graph structure. 
 
-```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
+```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 7, fig.height = 7}
 # create tuning value list
 tuning = list(phi_alpha = c(1e+8, 20),
               phi_beta  = c(1e+8, 100),
@@ -216,7 +217,7 @@ The tuning values of phi_alpha, phi_beta, phi_delta, and phi_gamma should be cho
 The desired acceptance rate is between 25% and 60%.
 Furthermore, we need to set values of phi_A for the MCMC sampler to report neither too few nor too many changes of edges.
 
-```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
+```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 7, fig.height = 7}
 # create priors list
 priors = list(nu        = 10000^2,
               tau_alpha = c(0.01, 0.01),
@@ -249,4 +250,80 @@ We run the `mcmc_ZIPBN` function with the generated data in the previous section
 `starting`, `tuning`, and `priors` are passed into the `mcmc_ZIPBN` function. 
 `n_sample = 5000` and `n_burin = 2500` are specified to determine the number of MCMC iterations and burn-in samples.  
 Since we set `verbose = TRUE` and `n_report = 1000`, progress of the MCMC sampler and Metropolis acceptance rates are reported every 1000th interation.
-Observe that the acceptance rates are between 25% and 60%, which indicates our MCMC sampler is tuned well.
+Observe that the printed acceptance rates are between 25% and 60%, which indicates our MCMC sampler is tuned well.
+
+&nbsp;
+
+# Posterior Inference via `ZIPBN` Results
+
+The `mcmc_ZIPBN` function returns MCMC samples from posterior distributions for the defined parameters of ZIPBN models as well as Metropolis acceptance percents.
+We are going to do posterior inference using the MCMC samples in this section.
+
+```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 7, fig.height = 7}
+# report Metropolis sampling acceptance percents
+out$acceptance
+```
+
+The Metropolis sampling acceptance rates seems good, as mentioned in the previous section. We then make inference on graph structure.
+
+```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 7.1, fig.height = 3.6}
+# recover garph structure
+cutoff = 0.5
+A_est  = 1 * (apply(out$samples$A, c(1, 2), mean) > cutoff)
+
+# show the generated DAG
+A_est
+g_est = graph_from_adjacency_matrix(t(A_est))
+par(mfrow = c(1, 2))
+plot.igraph(g, vertex.size = 25, vertex.color = "pink", main = "True DAG")
+plot.igraph(g_est, vertex.size = 25, vertex.color = "orange", main = "DAG recovered using ZIPBN")
+```
+
+The posterior mean of each element $a_{jk}$ of $A$ represents probability that the edge $k \to j$ exists.
+To recover the graph, therefore, we need to set a cutoff to determine which edges are selected.
+Here, graph structure is recovered by applying the cutoff 0.5.
+We print the recovered adjacency matrix A_est.
+Its graph is also plotted with the graph of true DAG by using `plot.igraph` function.
+Notice that the underlying graph structure of true DAG is completely found by our estimate. 
+
+```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 7, fig.height = 7}
+# collect MCMC samples corresponding to the recovered graph
+subset = apply(out$samples$A == array(A_est, dim = c(p, p, n_sample - n_burnin)), 3, all)
+alpha_mcmc = out$samples$alpha[ , , subset]
+beta_mcmc  = out$samples$beta[ , , subset]
+delta_mcmc = out$samples$delta[ , subset]
+gamma_mcmc = out$samples$gamma[ , subset]
+
+# calculate the posterior mean of each parameter, given the recovered graph 
+alpha_est = apply(alpha_mcmc, c(1, 2), mean)
+beta_est  = apply(beta_mcmc, c(1, 2), mean)
+delta_est = rowMeans(delta_mcmc)
+gamma_est = rowMeans(gamma_mcmc)
+
+# report the posterior mean of each parameter
+round(alpha_est, digits = 2)
+round(beta_est, digits = 2)
+round(delta_est, digits = 2)
+round(gamma_est, digits = 2)
+```
+
+Provided the estimated DAG, we continue posterior inference on other ZIPBN parameters. 
+First thing we need to do is to collect MCMC samples which correspond to the recovered graph.
+Based on the subset of MCMC samples, the posterior mean of each parameter is calculated.
+Observe that our estimates fairly match with true values of parameters.
+
+```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 7, fig.height = 7}
+# calculate the highest posterior density intervals for ZIPBN parameters
+library(HDInterval)
+hdi(alpha_mcmc[1, 3, ], credMass = 0.95)   # credible interval for \alpha_{13}
+hdi(beta_mcmc[1, 3, ], credMass = 0.95)    # credible interval for \beta_{13}
+hdi(delta_mcmc[1, ], credMass = 0.95)      # credible interval for \delta_{1}
+hdi(gamma_mcmc[1, ], credMass = 0.95)      # credible interval for \gamma_{1}
+```
+
+In addition to point estimates, we are able to construct a credible interval for each parameter based on the posterior samples.
+The credible interval is a Bayesian alternative to the confidence interval.
+The package `HDInterval` calculates the highest posterior density intervals using samples from the posterior distribution.
+The highest posterior density interval is the credible interval with the shortest length.
+Here, we calculate 95% highest posterior density intervals for $\alpha_{13}$, $\beta_{13}$, $\delta_1$, and $\gamma_1$.
+All of the intervals contain the true parameter values.
