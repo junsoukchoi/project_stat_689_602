@@ -25,7 +25,7 @@ To install the latest version from Github, use
 
 ``` r
 library(devtools)
-devtools::install_github("junsoukchoi/ZIPBN")
+devtools::install_github("junsoukchoi/ZIPBN", build_vignettes = TRUE)
 ```
 
 ## Usage
@@ -37,7 +37,9 @@ and returns MCMC samples from posterior distributions of the parameters
 defined by ZIPBN models. It also gives Metropolis sampling acceptance
 rates, which indicates whether our MCMC sampler goes well. For more
 information on `ZIPBN` package, please access the package documentation
-or .
+or
+[vignettes](https://github.com/junsoukchoi/ZIPBN/blob/master/vignettes/ZIPBN.pdf).
+Please feel free to contact the author.
 
 ``` r
 library(ZIPBN)
