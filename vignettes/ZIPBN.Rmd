@@ -90,7 +90,7 @@ set.seed(20191207)
 
 # randomly generate a DAG with p nodes and p - 1 edges
 p = 6
-n_edges = p - 1
+n_edges = p
 A = matrix(0, p, p)
 while (sum(A == 1) < n_edges)
 {
@@ -108,15 +108,15 @@ A
 plot.igraph(g, vertex.size = 25, vertex.color = "pink", main = "DAG A with 6 nodes and 5 edges")
 ```
 
-A DAG with `r p` nodes and `r p-1` edges is generated. 
+A DAG with `r p` nodes and `r p` edges is generated. 
 `graph_from_adjacency_matrix` function creates an `igraph` graph object from an adjacency matrix and `is_dag` function tests whether the given `igraph` graph is a DAG.
 The above code randomly suggests a directed edge and tests whether the suggested edge makes a directed cycle. 
 If a directed cycle is made, we discard the proposed edge.
 It is repeated until the graph has the prespecified number of edges. 
 Notice that ZIPBN models define an adjacency matrix as $A = (a_{jk})$ with $a_{jk} = 1$ if $k \to j$, but in the case of `igraph` , $a_{jk} = 1$ if $j \to k$.
-So we need to transpose our adjacency matrix before converting it to an `igraph` graph.
+We, therefore, need to transpose our adjacency matrix before converting it to an `igraph` graph.
 The adjacency matrix `A` we generate is printed and its graph is plotted using `plot.igraph` function of `igraph`.
-We, then, generate data from a ZIPBN model depending on the DAG we create. 
+We then generate data from a ZIPBN model depending on the DAG we create. 
 
 ```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
 # set parameters of the ZIPBN model, given DAG A
@@ -149,9 +149,9 @@ mean(x == 0)   # proprtion of zeros
 ```
 
 Given the generated adjacency matrix (DAG) `A`, parameters are specified for ZIPBN.
-If there is a directed edge $k \to j$, the corresponding $\alpha_{jk}$ and $\beta_{jk}$ equal to $0.2$ and $-0.2$ respectively.
+If there is a directed edge $k \to j$, the corresponding $\alpha_{jk}$ and $\beta_{jk}$ equal to 0.2 and -0.2 respectively.
 Otherwise, they are zeros.
-All $\delta_j$'s has the value of $-1$, while $\gamma_j$'s are $2$. 
+All $\delta_j$'s has the value of -1, while $\gamma_j$'s are 2. 
 We draw `r n` samples from the ZIPBN model with the specified parameters.
 Here, some functions of `igraph` are used.
 `topo_sort` function orders the nodes of a DAG graph so that each node comes before all nodes to which it has edges.
@@ -159,4 +159,94 @@ Here, some functions of `igraph` are used.
 `r order_nodes` are the order of our DAG and we generate data in the sequence of this order.
 Observe that the proportion of zeros in data is `r mean(x == 0)`, which indicates the generated data are sparse with excessive zeros.
 
+&nbsp;
 
+# Using `ZIPBN` for Example Data
+
+In this section, we demonstrate how `ZIPBN` can be used to discover conditional dependence structures of variables from zero-inflated count data.
+`ZIPBN` consists of a function `mcmc_ZIPBN` which implements the MCMC for ZIPBN models. 
+`mcmc_ZIPBN` needs three essential arguments `starting`, `tuning`, and `priors`.
+
+```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
+# create starting value list
+m = colMeans(x)
+v = apply(x, 2, var)
+starting = list(alpha = matrix(0, p, p),
+                beta  = matrix(0, p, p),
+                delta = log((v - m) / (m * m)),
+                gamma = log((v - m + m * m) / m),
+                A     = matrix(0, p, p),
+                tau   = c(10, 10, 1, 1),
+                rho   = 0.1)
+```
+
+`starting` is a list with each tag corresponding to a parameter name. 
+The value portion of each tag is the parameters' starting values for MCMC.
+Valid tags are alpha, beta, delta, gamma, A, tau, and rho. 
+If you have any prior information about graph structure of your data, it would be better to incorporate the information into the starting values.
+We assume we know nothing about our data. 
+The empty graph is a good choice for the starting value of A, since we believe a graph is sparse.
+The starting values of alpha and beta should be zero matrices accordingly.
+For the starting values of delta and gamma, assuming all variables are independent, we calculate the plug-in estimates for $\delta$ and $\gamma$.
+Values between 1 and 10 are good enogh for Markov chains of $\tau$'s to start.
+The choice of starting values of tau does not affect much to the performance of our MCMC.
+The value of 0.1 is reasonable for the starting value of rho, due to sparsity assumption for graph structure. 
+
+```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
+# create tuning value list
+tuning = list(phi_alpha = c(1e+8, 20),
+              phi_beta  = c(1e+8, 100),
+              phi_delta = 5,
+              phi_gamma = 50,
+              phi_A     = c(1e+10, 10, 10, 1, 10))
+```
+
+`tuning` is a list with each tag corresponding to a parameter name. 
+The value portion of each tag defines the precision of Normal proposal distribution for Metropolis sampler.
+Valid tags are phi_alpha, phi_beta, phi_delta, phi_gamma, and phi_A.
+phi_alpha and phi_beta should be a positive vector of length 2.
+When a new value is proposed for each element, if there is no edge corresponding to the element, the Metropolis sampler uses the first element as the precision of the proposal distribution.
+Otherwise, the second element is used. 
+phi_A must be a positive vector of length 5.
+Note that an element of $A$ is proposed jointly with the corresponding element of alpha, beta, delta, and gamma.
+The third and fourth elements are precisions of Normal proposal distributions for $\delta$ and $\gamma$.
+The first element is used for proposal regarding $\alpha$ and $\beta$, if deletion of an edge is proposed.
+The second and third elements are used to propose a new value of each element of $\alpha$ and $\beta$, when proposing addition of an edge.
+The tuning values of phi_alpha, phi_beta, phi_delta, and phi_gamma should be chosen by monitoring the acceptance rates.
+The desired acceptance rate is between 25% and 60%.
+Furthermore, we need to set values of phi_A for the MCMC sampler to report neither too few nor too many changes of edges.
+
+```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
+# create priors list
+priors = list(nu        = 10000^2,
+              tau_alpha = c(0.01, 0.01),
+              tau_beta  = c(0.01, 0.01),
+              tau_delta = c(0.01, 0.01),
+              tau_gamma = c(0.01, 0.01),
+              rho       = c(0.5, 0.5))
+```
+
+`priors` is a list with each tag corresponding to a parameter name. 
+The value portion of each tag defines hyperparameters of the priors specified for ZIPBN models
+Valid tags are nu, tau_alpha, tau_beta, tau_delta, tau_gamma, and rho.
+The value of nu controls the spike part of our spike-and-slab prior for $\alpha$ and $\beta$'s.
+Our experiment shows that $10000^2$ or $1000^2$ gives satisfactory results.
+tau_alpha, tau_beta, tau_delta, are tau_gamma define hyperparameters of Gamma priors for precisions of Normal priors on ZIPBN parameters.
+Values of `r c(0.01, 0.01)` are most commonly used, since the hyperparameter values makes Gamma prior uninformative. 
+rho determines hyperparameters of Beta prior on the inclusion probability of edges.
+We set `r rho = c(0.01, 0.01)`, as it assign high probability near $0$ and we assume sparsity for graph structure. 
+
+```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 7, fig.height = 7}
+# run mcmc_ZIPBN function
+n_sample = 5000
+n_burnin = 2500
+verbose  = TRUE
+n_report = 1000
+out = mcmc_ZIPBN(x, starting, tuning, priors, n_sample, n_burnin, verbose, n_report)
+```
+
+We run the `mcmc_ZIPBN` function with the generated data in the previous section. 
+`starting`, `tuning`, and `priors` are passed into the `mcmc_ZIPBN` function. 
+`n_sample = 5000` and `n_burin = 2500` are specified to determine the number of MCMC iterations and burn-in samples.  
+Since we set `verbose = TRUE` and `n_report = 1000`, progress of the MCMC sampler and Metropolis acceptance rates are reported every 1000th interation.
+Observe that the acceptance rates are between 25% and 60%, which indicates our MCMC sampler is tuned well.
