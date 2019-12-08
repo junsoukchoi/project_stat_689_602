@@ -68,13 +68,95 @@ To overcome it, we sample $a_{jk}$ jointly with $\alpha_{jk}$, $\beta_{jk}$, $\d
 Additionally, one of two proposal strategies is chosen with probability of $0.5$.
 The first one is that if there exist (or doesn't exist) an edge $k \to j$, a Metropolis sampler proposes addition of the edge (or deletion of the edge).
 The second strategy is to propose reversing the edge for a Metropolis step.
-This MCMC algorithm is implemented as `ZIPBN`.
+This MCMC algorithm is implemented as `ZIPBN` package.
 
+&nbsp;
 
-```{r setup}
+# Generating Example Data
+
+We generate example data using ZIPBN models, rather than loading real data.
+It will be helpful to understand what the ZIPB model is, since procedure of data generation gives a clear sketch of ZIPBN models. 
+First, we load `ZIPBN` package and randomly generate a graph. `igraph` package is also loaded to make use of its convenient functions for analyzing graph structures.
+
+```{r, message = FALSE}
+# load ZIPBN package with igraph package
 library(ZIPBN)
+library(igraph)
 ```
 
+```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
+# set random seed for reproducibility
+set.seed(20191207)
 
+# randomly generate a DAG with p nodes and p - 1 edges
+p = 6
+n_edges = p - 1
+A = matrix(0, p, p)
+while (sum(A == 1) < n_edges)
+{
+   id_edge = matrix(sample(1 : p, 2), ncol = 2)
+   A[id_edge] = 1
+   g = graph_from_adjacency_matrix(t(A))
+
+   # if selected edge make a directed cycle, discard the edge 
+   if (!is_dag(g))
+      A[id_edge] = 0
+}
+
+# show the generated DAG
+A
+plot.igraph(g, vertex.size = 25, vertex.color = "pink", main = "DAG A with 6 nodes and 5 edges")
+```
+
+A DAG with `r p` nodes and `r p-1` edges is generated. 
+`graph_from_adjacency_matrix` function creates an `igraph` graph object from an adjacency matrix and `is_dag` function tests whether the given `igraph` graph is a DAG.
+The above code randomly suggests a directed edge and tests whether the suggested edge makes a directed cycle. 
+If a directed cycle is made, we discard the proposed edge.
+It is repeated until the graph has the prespecified number of edges. 
+Notice that ZIPBN models define an adjacency matrix as $A = (a_{jk})$ with $a_{jk} = 1$ if $k \to j$, but in the case of `igraph` , $a_{jk} = 1$ if $j \to k$.
+So we need to transpose our adjacency matrix before converting it to an `igraph` graph.
+The adjacency matrix `A` we generate is printed and its graph is plotted using `plot.igraph` function of `igraph`.
+We, then, generate data from a ZIPBN model depending on the DAG we create. 
+
+```{r, eval = TRUE, echo = TRUE, fig.width = 7, fig.height = 7}
+# set parameters of the ZIPBN model, given DAG A
+alpha = matrix(0, p, p)
+alpha[A == 1] = 0.2
+beta  = matrix(0, p, p)
+beta[A == 1]  = -0.2
+delta = rep(-1, p)
+gamma = rep(2, p)
+
+# generate data from the ZIPBN model with true parameters
+n = 1000
+x = matrix(0, n, p)
+order_nodes = as_ids(topo_sort(g))
+order_nodes
+for (j in order_nodes)
+{
+  # calculate pi_j
+  pi = exp(x %*% alpha[j, ] + delta[j])
+  pi = pi / (1 + pi)
+  # calculate mu_j
+  mu = exp(x %*% beta[j, ] + gamma[j])
+  # generate data for X_j
+  x[ , j] = rpois(n, mu) * (1 - rbinom(n, 1, pi))
+}
+
+
+head(x)
+mean(x == 0)   # proprtion of zeros
+```
+
+Given the generated adjacency matrix (DAG) `A`, parameters are specified for ZIPBN.
+If there is a directed edge $k \to j$, the corresponding $\alpha_{jk}$ and $\beta_{jk}$ equal to $0.2$ and $-0.2$ respectively.
+Otherwise, they are zeros.
+All $\delta_j$'s has the value of $-1$, while $\gamma_j$'s are $2$. 
+We draw `r n` samples from the ZIPBN model with the specified parameters.
+Here, some functions of `igraph` are used.
+`topo_sort` function orders the nodes of a DAG graph so that each node comes before all nodes to which it has edges.
+`as_ids` function convert a node sequence to an ordinary vector.
+`r order_nodes` are the order of our DAG and we generate data in the sequence of this order.
+Observe that the proportion of zeros in data is `r mean(x == 0)`, which indicates the generated data are sparse with excessive zeros.
 
 
