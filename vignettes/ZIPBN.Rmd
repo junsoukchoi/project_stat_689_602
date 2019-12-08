@@ -106,7 +106,8 @@ while (sum(A == 1) < n_edges)
 
 # show the generated DAG
 A
-plot.igraph(g, vertex.size = 25, vertex.color = "pink", main = "DAG generated with 6 nodes and 6 edges")
+plot.igraph(g, vertex.size = 25, vertex.color = "pink", 
+            main = "DAG generated with 6 nodes and 6 edges")
 ```
 
 A DAG with `r p` nodes and `r p` edges is generated. 
@@ -231,11 +232,11 @@ priors = list(nu        = 10000^2,
 The value portion of each tag defines hyperparameters of the priors specified for ZIPBN models
 Valid tags are nu, tau_alpha, tau_beta, tau_delta, tau_gamma, and rho.
 The value of nu controls the spike part of our spike-and-slab prior for $\alpha$ and $\beta$'s.
-Our experiment shows that $10000^2$ or $1000^2$ gives satisfactory results.
+Our experiment shows that 10000^2 or 1000^2 gives satisfactory results.
 tau_alpha, tau_beta, tau_delta, are tau_gamma define hyperparameters of Gamma priors for precisions of Normal priors on ZIPBN parameters.
 Values of `r c(0.01, 0.01)` are most commonly used, since the hyperparameter values makes Gamma prior uninformative. 
 rho determines hyperparameters of Beta prior on the inclusion probability of edges.
-We set `r rho = c(0.01, 0.01)`, as it assign high probability near $0$ and we assume sparsity for graph structure. 
+We set `r rho = c(0.01, 0.01)`, as it assign high probability near 0 and we assume sparsity for graph structure. 
 
 ```{r, eval = TRUE, echo = TRUE, cache = TRUE, fig.width = 7, fig.height = 7}
 # run mcmc_ZIPBN function
